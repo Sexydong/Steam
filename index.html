@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정보보안 챌린지 (랭킹 기능)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .answer-btn.correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white;
+            border-color: #16a34a; /* green-600 */
+        }
+        .answer-btn.incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white;
+            border-color: #dc2626; /* red-600 */
+        }
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.75);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- User Info Modal -->
+    <div id="user-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
+        <div class="bg-white text-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all">
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">정보를 입력하세요</h2>
+            <form id="user-form">
+                <div class="mb-4">
+                    <label for="grade" class="block text-sm font-medium text-gray-600 mb-1">학년</label>
+                    <input type="number" id="grade" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="classNum" class="block text-sm font-medium text-gray-600 mb-1">반</label>
+                    <input type="number" id="classNum" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="studentNum" class="block text-sm font-medium text-gray-600 mb-1">번호</label>
+                    <input type="number" id="studentNum" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="name" class="block text-sm font-medium text-gray-600 mb-1">이름</label>
+                    <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition duration-300">챌린지 시작!</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-content" class="w-full max-w-7xl mx-auto hidden">
+        <h1 class="text-4xl font-bold text-center mb-2 text-indigo-400">🛡️ 정보보안 챌린지 🛡️</h1>
+        <p id="welcome-message" class="text-center text-gray-400 mb-8"></p>
+        
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Quiz Container -->
+            <div id="quiz-container" class="bg-gray-800 p-8 rounded-2xl shadow-lg w-full lg:w-2/3">
+                <div id="question-container" class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                         <h2 id="question-number" class="text-xl font-bold text-indigo-300">문제 1</h2>
+                         <div class="text-lg font-semibold text-yellow-400">점수: <span id="score">0</span></div>
+                    </div>
+                    <p id="question-element" class="text-2xl leading-relaxed min-h-[6rem]">질문이 여기에 표시됩니다.</p>
+                </div>
+                <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Answer buttons will be generated here -->
+                </div>
+                <div class="mt-8 flex justify-end">
+                    <button id="next-btn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition duration-300 hidden">다음 문제</button>
+                </div>
+            </div>
+
+            <!-- Ranking Board -->
+            <div class="w-full lg:w-1/3 bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-3xl font-bold mb-6 text-center text-yellow-400">🏆 실시간 랭킹 🏆</h2>
+                <div class="overflow-y-auto max-h-[500px]">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-gray-300 uppercase bg-gray-700">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">순위</th>
+                                <th scope="col" class="px-4 py-3">정보</th>
+                                <th scope="col" class="px-4 py-3">이름</th>
+                                <th scope="col" class="px-4 py-3 text-right">점수</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ranking-body">
+                            <!-- Ranking data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Firebase 11.6.1 imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURATION ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'security-challenge-game';
+        
+        // --- FIREBASE INITIALIZATION ---
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            document.body.innerHTML = "Firebase 설정에 실패했습니다. 관리자에게 문의하세요.";
+        }
+        
+        // --- DOM ELEMENTS ---
+        const userModal = document.getElementById('user-modal');
+        const userForm = document.getElementById('user-form');
+        const mainContent = document.getElementById('main-content');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const quizContainer = document.getElementById('quiz-container');
+        const questionContainer = document.getElementById('question-container');
+        const questionElement = document.getElementById('question-element');
+        const questionNumberEl = document.getElementById('question-number');
+        const answerButtons = document.getElementById('answer-buttons');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreEl = document.getElementById('score');
+        const rankingBody = document.getElementById('ranking-body');
+
+        // --- QUIZ QUESTIONS ---
+        const questions = [
+            {
+                question: "다른 사람의 개인정보를 무단으로 이용하는 행위를 무엇이라고 할까요?",
+                answers: [
+                    { text: "해킹", correct: false },
+                    { text: "개인정보 침해", correct: true },
+                    { text: "피싱", correct: false },
+                    { text: "스미싱", correct: false }
+                ]
+            },
+            {
+                question: "웹사이트 비밀번호 설정 시 가장 안전한 방법은 무엇일까요?",
+                answers: [
+                    { text: "생일이나 전화번호 사용", correct: false },
+                    { text: "모든 사이트에 동일한 비밀번호 사용", correct: false },
+                    { text: "영문, 숫자, 특수문자를 조합하여 8자리 이상으로 설정", correct: true },
+                    { text: "자주 사용하는 단어 사용", correct: false }
+                ]
+            },
+            {
+                question: "출처가 불분명한 이메일에 포함된 첨부파일이나 링크를 클릭했을 때 발생할 수 있는 가장 큰 위협은?",
+                answers: [
+                    { text: "컴퓨터 속도 저하", correct: false },
+                    { text: "악성코드 감염", correct: true },
+                    { text: "인터넷 연결 끊김", correct: false },
+                    { text: "모니터 화면 밝기 변경", correct: false }
+                ]
+            },
+            {
+                question: "금융기관을 사칭하여 개인의 금융정보를 빼내는 사기 수법을 무엇이라고 할까요?",
+                answers: [
+                    { text: "파밍", correct: false },
+                    { text: "스니핑", correct: false },
+                    { text: "피싱(Phishing)", correct: true },
+                    { text: "스푸핑", correct: false }
+                ]
+            },
+            {
+                question: "공공장소에서 무료 와이파이(Wi-Fi) 사용 시 주의해야 할 점으로 올바르지 않은 것은?",
+                answers: [
+                    { text: "보안 설정이 없는 와이파이는 사용을 자제한다.", correct: false },
+                    { text: "중요한 개인정보나 금융 거래는 하지 않는다.", correct: false },
+                    { text: "무료이므로 마음껏 모든 사이트에 접속해도 안전하다.", correct: true },
+                    { text: "VPN(가상사설망)을 이용하여 통신을 암호화한다.", correct: false }
+                ]
+            }
+        ];
+
+        // --- GAME STATE ---
+        let currentUser = { grade: '', classNum: '', studentNum: '', name: '' };
+        let currentQuestionIndex = 0;
+        let score = 0;
+        
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("Authenticated user:", user.uid);
+            } else {
+                 try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                }
+            }
+        });
+
+        // --- RANKING LOGIC ---
+        const rankingsCol = collection(db, `artifacts/${appId}/public/data/rankings`);
+        const q = query(rankingsCol, orderBy("score", "desc"), limit(20));
+
+        onSnapshot(q, (snapshot) => {
+            rankingBody.innerHTML = '';
+            if (snapshot.empty) {
+                rankingBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">아직 랭킹이 없습니다.</td></tr>';
+                return;
+            }
+            snapshot.docs.forEach((doc, index) => {
+                const data = doc.data();
+                const rank = index + 1;
+                const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                const info = `${data.grade}학년 ${data.classNum}반 ${data.studentNum}번`;
+                
+                const row = document.createElement('tr');
+                row.className = 'bg-gray-800 border-b border-gray-700 hover:bg-gray-600';
+                row.innerHTML = `
+                    <td class="px-4 py-3 font-medium">${rankEmoji} ${rank}</td>
+                    <td class="px-4 py-3">${info}</td>
+                    <td class="px-4 py-3 font-semibold">${data.name}</td>
+                    <td class="px-4 py-3 text-right font-bold text-yellow-300">${data.score}</td>
+                `;
+                rankingBody.appendChild(row);
+            });
+        }, (error) => {
+            console.error("Error fetching rankings:", error);
+            rankingBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">랭킹 로딩 실패</td></tr>';
+        });
+
+        // --- GAME LOGIC ---
+        userForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentUser.grade = document.getElementById('grade').value;
+            currentUser.classNum = document.getElementById('classNum').value;
+            currentUser.studentNum = document.getElementById('studentNum').value;
+            currentUser.name = document.getElementById('name').value.trim();
+
+            if (currentUser.name) {
+                userModal.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                welcomeMessage.textContent = `${currentUser.grade}학년 ${currentUser.classNum}반 ${currentUser.name}님, 도전을 시작합니다!`;
+                startQuiz();
+            }
+        });
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreEl.innerText = score;
+            nextBtn.classList.add('hidden');
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            resetState();
+            let currentQuestion = questions[currentQuestionIndex];
+            let questionNo = currentQuestionIndex + 1;
+            questionNumberEl.innerText = `문제 ${questionNo}`;
+            questionElement.innerText = currentQuestion.question;
+
+            currentQuestion.answers.forEach(answer => {
+                const button = document.createElement("button");
+                button.innerHTML = answer.text;
+                button.classList.add("answer-btn", "w-full", "text-left", "p-4", "rounded-lg", "border-2", "border-gray-500", "hover:bg-gray-700", "transition", "duration-200");
+                answerButtons.appendChild(button);
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener("click", selectAnswer);
+            });
+        }
+
+        function resetState() {
+            nextBtn.classList.add('hidden');
+            while (answerButtons.firstChild) {
+                answerButtons.removeChild(answerButtons.firstChild);
+            }
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === "true";
+            if (isCorrect) {
+                selectedBtn.classList.add("correct");
+                score += 10;
+                scoreEl.innerText = score;
+            } else {
+                selectedBtn.classList.add("incorrect");
+            }
+            Array.from(answerButtons.children).forEach(button => {
+                if (button.dataset.correct === "true") {
+                    if(!button.classList.contains('correct')) button.classList.add("correct");
+                }
+                button.disabled = true;
+            });
+            nextBtn.classList.remove('hidden');
+        }
+
+        async function showResults() {
+            resetState();
+            questionElement.innerHTML = `챌린지 종료! <br>총 <span class="text-yellow-400 font-bold">${questions.length}</span>문제 중 <span class="text-green-400 font-bold">${score / 10}</span>문제를 맞혔습니다. <br>최종 점수는 <span class="text-indigo-400 font-bold">${score}</span>점 입니다.`;
+            questionNumberEl.innerText = "결과";
+            nextBtn.innerHTML = "다시 시작";
+            nextBtn.classList.remove('hidden');
+
+            questionElement.innerHTML += `<br><br>랭킹에 점수를 등록하고 있습니다...`;
+            try {
+                await addDoc(rankingsCol, {
+                    ...currentUser,
+                    score: score,
+                    createdAt: serverTimestamp()
+                });
+                questionElement.innerHTML = questionElement.innerHTML.replace("랭킹에 점수를 등록하고 있습니다...", "<span class='text-green-400'>랭킹 등록 완료!</span>");
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                questionElement.innerHTML = questionElement.innerHTML.replace("랭킹에 점수를 등록하고 있습니다...", "<span class='text-red-500'>랭킹 등록에 실패했습니다.</span>");
+            }
+        }
+
+        function handleNextButton() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                displayQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        nextBtn.addEventListener("click", () => {
+            if (currentQuestionIndex < questions.length) {
+                handleNextButton();
+            } else {
+                // Restart logic: simply reload the page to force re-entry of info
+                window.location.reload();
+            }
+        });
+
+    </script>
+</body>
+</html>
+
