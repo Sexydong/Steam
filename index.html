@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>정보보안 전문가 챌린지 v3.0</title>
+    <title>정보보안 전문가 챌린지 v3.8 (Admin)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -17,6 +16,7 @@
             -webkit-backdrop-filter: blur(10px);
             background-color: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         .btn {
             transition: all 0.3s ease;
@@ -45,12 +45,25 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        /* 관리자 모드 정답 하이라이트 */
+        .admin-correct-answer {
+            box-shadow: 0 0 20px 5px rgba(22, 255, 201, 0.7);
+            border: 2px solid #16ffc9;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<body class="bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center min-h-screen p-4">
 
+    <!-- 전체 화면 토글 버튼 -->
+    <button id="fullscreen-button" class="fixed top-4 right-4 text-gray-400 hover:text-white z-50 btn">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+    <!-- 게임 전체를 감싸는 컨테이너 -->
     <div id="game-container" class="w-full max-w-2xl mx-auto">
 
+        <!-- 시작 화면 -->
         <div id="start-screen" class="text-center">
             <h1 class="text-4xl md:text-5xl font-bold mb-4 text-cyan-400">정보보안 전문가 챌린지</h1>
             <p class="text-lg md:text-xl text-gray-300 mb-8">실시간으로 발생하는 사이버 위협에 맞서<br>회사를 안전하게 지켜주세요!</p>
@@ -64,28 +77,31 @@
             </div>
         </div>
         
+        <!-- 난이도 선택 화면 -->
         <div id="difficulty-screen" class="hidden text-center">
             <h2 class="text-3xl font-bold mb-8 text-cyan-400">난이도를 선택하세요</h2>
             <div class="space-y-4">
                 <button data-difficulty="easy" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-green-600 hover:bg-green-500">
                     <span class="text-2xl">😄 신입사원</span><br>
-                    <span class="text-base font-normal">기본적인 정보보안 개념을 학습합니다.</span>
+                    <span class="text-base font-normal">기본적인 정보보안 개념을 학습합니다. (10문제)</span>
                 </button>
                 <button data-difficulty="hard" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-yellow-600 hover:bg-yellow-500">
                     <span class="text-2xl">😎 보안 전문가</span><br>
-                    <span class="text-base font-normal">고도화된 공격에 대응하는 방법을 다룹니다.</span>
+                    <span class="text-base font-normal">고도화된 공격에 대응하는 방법을 다룹니다. (10문제)</span>
                 </button>
                 <button data-difficulty="expert" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-red-600 hover:bg-red-500">
                     <span class="text-2xl">😈 전설의 해커</span><br>
-                    <span class="text-base font-normal">최고 수준의 보안 위협에 도전합니다. (매우 어려움)</span>
+                    <span class="text-base font-normal">최고 수준의 보안 위협에 도전합니다. (10문제)</span>
                 </button>
             </div>
         </div>
 
+        <!-- 게임 화면 -->
         <div id="game-screen" class="hidden">
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-1">
                     <span class="font-bold text-lg">회사 보안 상태</span>
+                    <span id="progress" class="text-sm text-gray-400">1/10</span>
                     <span id="score" class="font-bold text-lg text-cyan-400">100점</span>
                 </div>
                 <div class="w-full bg-gray-700 rounded-full h-6">
@@ -95,7 +111,8 @@
             <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
                 <div id="timer-bar" class="bg-yellow-400 h-2.5 rounded-full" style="width: 100%;"></div>
             </div>
-            <div id="scenario-container" class="card rounded-2xl p-6 md:p-8 shadow-2xl">
+            
+            <div id="scenario-container" class="card rounded-2xl p-6 md:p-8">
                 <div class="flex items-start mb-4">
                     <div id="scenario-icon" class="mr-4 text-4xl"></div>
                     <div>
@@ -111,6 +128,7 @@
             </div>
         </div>
 
+        <!-- 모달 (피드백, 리더보드) -->
         <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 modal">
             <div id="feedback-content" class="text-center rounded-2xl p-8 max-w-lg w-full card">
                 <h3 id="feedback-title" class="text-3xl font-bold mb-4"></h3>
@@ -131,6 +149,7 @@
             </div>
         </div>
 
+        <!-- 종료 화면 -->
         <div id="end-screen" class="hidden text-center">
             <h2 class="text-2xl font-bold mb-2 text-gray-400">챌린지 종료!</h2>
             <h1 id="end-title" class="text-5xl font-bold mb-4"></h1>
@@ -143,11 +162,39 @@
                     <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg btn">등록</button>
                 </form>
             </div>
-            <button id="restart-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn">
-                다시 도전하기
-            </button>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button id="restart-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn w-full sm:w-auto">
+                    다시 도전하기
+                </button>
+                <button id="end-screen-leaderboard-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn w-full sm:w-auto">
+                    🏆 명예의 전당
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- 관리자 패널 (초기에는 숨김) -->
+    <div id="admin-panel" class="hidden fixed bottom-4 left-4 bg-gray-900 bg-opacity-80 backdrop-blur-sm border border-gray-700 rounded-lg p-4 w-80 z-50 card">
+        <h3 class="text-lg font-bold text-yellow-400 mb-4">관리자 모드</h3>
+        <div id="admin-game-controls" class="hidden">
+            <button id="show-answer-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded btn mb-4">정답 보기</button>
+        </div>
+        <div>
+            <h4 class="font-bold mb-2">랭킹 관리</h4>
+            <div id="admin-leaderboard" class="space-y-2 max-h-40 overflow-y-auto mb-4 pr-2"></div>
+            <form id="add-rank-form" class="space-y-2">
+                <input type="text" id="admin-name" placeholder="이름" class="w-full bg-gray-700 text-white rounded px-2 py-1 text-sm">
+                <input type="number" id="admin-score" placeholder="점수" class="w-full bg-gray-700 text-white rounded px-2 py-1 text-sm">
+                <select id="admin-difficulty" class="w-full bg-gray-700 text-white rounded px-2 py-1 text-sm">
+                    <option value="easy">신입사원</option>
+                    <option value="hard">보안 전문가</option>
+                    <option value="expert">전설의 해커</option>
+                </select>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded btn">랭킹 추가</button>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         // --- DOM 요소 ---
@@ -160,6 +207,7 @@
         const restartButton = document.getElementById('restart-button');
         
         const scoreDisplay = document.getElementById('score');
+        const progressDisplay = document.getElementById('progress');
         const securityBar = document.getElementById('security-bar');
         const timerBar = document.getElementById('timer-bar');
         
@@ -183,29 +231,57 @@
         const leaderboardFormContainer = document.getElementById('leaderboard-form-container');
         const leaderboardForm = document.getElementById('leaderboard-form');
         const playerNameInput = document.getElementById('player-name');
+        const endScreenLeaderboardButton = document.getElementById('end-screen-leaderboard-button');
+
+        // 전체화면 요소
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const fullscreenEnterIcon = document.getElementById('fullscreen-enter-icon');
+        const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
+
+        // 관리자 모드 요소
+        const adminPanel = document.getElementById('admin-panel');
+        const adminGameControls = document.getElementById('admin-game-controls');
+        const showAnswerButton = document.getElementById('show-answer-button');
+        const adminLeaderboardContainer = document.getElementById('admin-leaderboard');
+        const addRankForm = document.getElementById('add-rank-form');
 
         // --- 시나리오 데이터 ---
         const scenarios = {
             easy: [
-                { icon: '📧', title: '수상한 이메일', description: '"[긴급] 비밀번호가 만료되었습니다" 라는 제목의 이메일을 받았습니다. 링크를 클릭하여 비밀번호를 변경하라고 합니다.', choices: [{ text: '링크를 클릭해서 비밀번호를 바꾼다.', correct: false, points: -20 }, { text: '이메일을 삭제하고, 즐겨찾기 해둔 공식 사이트로 직접 접속하여 확인한다.', correct: true, points: 15 }], explanation: '전형적인 피싱(Phishing) 이메일입니다. 출처가 불분명한 링크는 절대 클릭해서는 안 됩니다.', hint: '이메일 속 링크를 함부로 믿지 마세요.' },
-                { icon: '📦', title: '수상한 택배 문자', description: '"[국제택배] 고객님 배송불가 주소불명. 주소지 변경요망" 이라는 내용과 함께 단축 URL이 포함된 문자를 받았습니다.', choices: [{ text: '택배를 기다리고 있었으므로, URL을 클릭하여 주소를 수정한다.', correct: false, points: -25 }, { text: 'URL을 클릭하지 않고, 공식 택배사 앱이나 웹사이트를 통해 직접 배송 상태를 확인한다.', correct: true, points: 15 }], explanation: '문자 메시지(SMS)와 피싱(Phishing)의 합성어인 스미싱(Smishing) 공격입니다. URL을 클릭하면 악성 앱이 설치될 수 있습니다.', hint: '문자 메시지로 온 불분명한 URL은 절대 클릭하지 마세요.' },
-                { icon: '🔑', title: '안전한 비밀번호 만들기', description: '새로운 웹사이트에 가입하려고 합니다. 어떤 비밀번호가 가장 안전할까요?', choices: [{ text: '`password123` 또는 내 생일', correct: false, points: -20 }, { text: '영문 대/소문자, 숫자, 특수문자를 조합한 12자리 이상의 비밀번호', correct: true, points: 15 }], explanation: '추측하기 어렵고 길며, 여러 종류의 문자를 조합한 비밀번호가 안전합니다. 여러 사이트에서 같은 비밀번호를 쓰는 것도 피해야 합니다.', hint: '복잡하고 길수록 좋습니다.' },
-                { icon: '📷', title: 'SNS 사진 업로드', description: '해외 여행지에서 찍은 비행기표 사진을 SNS에 올리려고 합니다. 탑승객 이름, 항공편, 바코드가 모두 나와 있습니다.', choices: [{ text: '여행의 설렘을 공유하기 위해 원본 사진을 그대로 올린다.', correct: false, points: -15 }, { text: '바코드와 개인정보를 가리거나, 해당 사진은 올리지 않는다.', correct: true, points: 10 }], explanation: '비행기표 바코드에는 민감한 정보가 포함되어 있어, 악의적인 사용자가 예약을 변경하거나 취소할 수 있습니다.', hint: '사진 속 바코드에도 중요한 정보가 숨어있을 수 있습니다.' },
-                { icon: '🌐', title: '공용 Wi-Fi 사용', description: '카페의 무료 공용 Wi-Fi에 접속하여 은행 업무를 보려고 합니다.', choices: [{ text: '괜찮겠지. 그냥 접속해서 은행 업무를 본다.', correct: false, points: -20 }, { text: '보안이 취약할 수 있으므로, 스마트폰 핫스팟을 이용하거나 나중에 안전한 곳에서 처리한다.', correct: true, points: 15 }], explanation: '암호화되지 않은 공용 Wi-Fi는 통신 내용을 엿들을 수 있는 중간자 공격에 취약합니다. 민감한 정보는 다루지 않는 것이 좋습니다.', hint: '세상에 공짜는 없습니다. 공짜 Wi-Fi는 특히 조심하세요.' }
+                { icon: '📧', title: '수상한 이메일', description: '"[긴급] 비밀번호가 만료되었습니다" 라는 제목의 이메일을 받았습니다. 링크를 클릭하여 비밀번호를 변경하라고 합니다.', choices: [{ text: '링크를 클릭해서 비밀번호를 바꾼다.', correct: false, points: -20 }, { text: '이메일을 삭제하고, 즐겨찾기 해둔 공식 사이트로 직접 접속하여 확인한다.', correct: true, points: 0 }], explanation: '전형적인 피싱(Phishing) 이메일입니다. 출처가 불분명한 링크는 절대 클릭해서는 안 됩니다.', hint: '이메일 속 링크를 함부로 믿지 마세요.' },
+                { icon: '📦', title: '수상한 택배 문자', description: '"[국제택배] 고객님 배송불가 주소불명. 주소지 변경요망" 이라는 내용과 함께 단축 URL이 포함된 문자를 받았습니다.', choices: [{ text: '택배를 기다리고 있었으므로, URL을 클릭하여 주소를 수정한다.', correct: false, points: -25 }, { text: 'URL을 클릭하지 않고, 공식 택배사 앱이나 웹사이트를 통해 직접 배송 상태를 확인한다.', correct: true, points: 0 }], explanation: '문자 메시지(SMS)와 피싱(Phishing)의 합성어인 스미싱(Smishing) 공격입니다. URL을 클릭하면 악성 앱이 설치될 수 있습니다.', hint: '문자 메시지로 온 불분명한 URL은 절대 클릭하지 마세요.' },
+                { icon: '🔑', title: '안전한 비밀번호 만들기', description: '새로운 웹사이트에 가입하려고 합니다. 어떤 비밀번호가 가장 안전할까요?', choices: [{ text: '`password123` 또는 내 생일', correct: false, points: -20 }, { text: '영문 대/소문자, 숫자, 특수문자를 조합한 12자리 이상의 비밀번호', correct: true, points: 0 }], explanation: '추측하기 어렵고 길며, 여러 종류의 문자를 조합한 비밀번호가 안전합니다. 여러 사이트에서 같은 비밀번호를 쓰는 것도 피해야 합니다.', hint: '복잡하고 길수록 좋습니다.' },
+                { icon: '📷', title: 'SNS 사진 업로드', description: '해외 여행지에서 찍은 비행기표 사진을 SNS에 올리려고 합니다. 탑승객 이름, 항공편, 바코드가 모두 나와 있습니다.', choices: [{ text: '여행의 설렘을 공유하기 위해 원본 사진을 그대로 올린다.', correct: false, points: -15 }, { text: '바코드와 개인정보를 가리거나, 해당 사진은 올리지 않는다.', correct: true, points: 0 }], explanation: '비행기표 바코드에는 민감한 정보가 포함되어 있어, 악의적인 사용자가 예약을 변경하거나 취소할 수 있습니다.', hint: '사진 속 바코드에도 중요한 정보가 숨어있을 수 있습니다.' },
+                { icon: '🌐', title: '공용 Wi-Fi 사용', description: '카페의 무료 공용 Wi-Fi에 접속하여 은행 업무를 보려고 합니다.', choices: [{ text: '괜찮겠지. 그냥 접속해서 은행 업무를 본다.', correct: false, points: -20 }, { text: '보안이 취약할 수 있으므로, 스마트폰 핫스팟을 이용하거나 나중에 안전한 곳에서 처리한다.', correct: true, points: 0 }], explanation: '암호화되지 않은 공용 Wi-Fi는 통신 내용을 엿들을 수 있는 중간자 공격에 취약합니다. 민감한 정보는 다루지 않는 것이 좋습니다.', hint: '세상에 공짜는 없습니다. 공짜 Wi-Fi는 특히 조심하세요.' },
+                { icon: '📶', title: '무료 충전소의 유혹', description: "공항에서 '무료 고속 충전' USB 포트를 발견했습니다. 스마트폰 배터리가 거의 없습니다. 어떻게 하시겠습니까?", choices: [{ text: "급하니 USB 포트에 바로 연결하여 충전한다.", correct: false, points: -20 }, { text: "데이터 통신이 차단된 충전 전용 케이블을 사용하거나, 개인 보조배터리를 사용한다.", correct: true, points: 0 }], explanation: "공용 USB 포트는 '주스 재킹(Juice Jacking)' 공격에 사용될 수 있습니다. 충전하는 동안 악성코드를 설치하거나 데이터를 훔칠 수 있습니다.", hint: "USB는 충전뿐만 아니라 데이터 전송도 가능합니다. 공용 포트는 믿을 수 있을까요?" },
+                { icon: '🧑‍💻', title: '친절한 동료의 부탁', description: '동료가 잠시 자리를 비우며 "내 컴퓨터에 로그인 좀 해서 급한 파일 좀 보내줘" 라고 부탁하며 포스트잇에 적힌 비밀번호를 건네줍니다.', choices: [{ text: "동료의 부탁이니, 알려준 비밀번호로 로그인해서 파일을 보내준다.", correct: false, points: -15 }, { text: "계정 공유는 보안 규정 위반이므로, 동료가 직접 처리하도록 정중히 거절한다.", correct: true, points: 0 }], explanation: "어떠한 경우에도 자신의 계정 정보를 타인과 공유해서는 안 됩니다. 이는 내부 보안의 기본 원칙입니다.", hint: "내 계정은 나만 사용해야 합니다." },
+                { icon: '💾', title: '주차장에서 주운 USB', description: "회사 주차장 바닥에서 USB 메모리를 발견했습니다. 어떤 자료가 들어있는지 궁금합니다.", choices: [{ text: "궁금하니까 회사 컴퓨터에 연결하여 내용을 확인한다.", correct: false, points: -25 }, { text: "악성코드가 있을 수 있으므로, 절대 컴퓨터에 연결하지 않고 IT 보안팀에 전달한다.", correct: true, points: 0 }], explanation: "USB 드롭 공격은 인간의 호기심을 이용하는 고전적인 사회 공학 기법입니다. USB를 연결하는 순간 악성코드에 감염될 수 있습니다.", hint: "세상에 공짜 점심은 없습니다. 주운 USB도 마찬가지입니다." },
+                { icon: '🔄', title: '귀찮은 소프트웨어 업데이트', description: "컴퓨터를 켤 때마다 운영체제와 여러 소프트웨어에서 '중요 보안 업데이트' 알림이 뜹니다. 하지만 재부팅이 귀찮습니다.", choices: [{ text: "'나중에 다시 알림'을 누르고 계속 무시한다.", correct: false, points: -20 }, { text: "잠시 시간을 내어 모든 보안 업데이트를 즉시 설치한다.", correct: true, points: 0 }], explanation: "소프트웨어 업데이트에는 새로 발견된 보안 취약점을 해결하는 중요한 패치가 포함되어 있습니다. 업데이트를 미루는 것은 공격에 문을 열어두는 것과 같습니다.", hint: "보안 업데이트는 귀찮은 일이 아니라, 가장 쉽고 중요한 방어 수단입니다." },
+                { icon: '📄', title: '중요 문서 폐기', description: "고객 개인정보가 포함된 내부 보고서 초안을 인쇄하여 검토했습니다. 이제 이 문서를 버리려고 합니다.", choices: [{ text: "대충 찢어서 일반 쓰레기통에 버린다.", correct: false, points: -15 }, { text: "문서 파쇄기를 이용하여 완전히 파기한 후 버린다.", correct: true, points: 0 }], explanation: "중요 정보가 담긴 문서는 '덤스터 다이빙(Dumpster Diving)'을 통해 유출될 수 있습니다. 반드시 파쇄하여 내용을 알아볼 수 없게 만들어야 합니다.", hint: "쓰레기통은 해커에게 보물상자가 될 수 있습니다." }
             ],
             hard: [
-                { icon: '📧', title: '의심스러운 이메일 수신', description: 'CFO에게서 "긴급: 3분기 재무 보고서 검토 요청"이라는 제목의 이메일이 왔습니다. 보낸 사람의 주소는 `cfo@go0oglecorp.com` 입니다. 어떻게 하시겠습니까?', choices: [{ text: '중요한 업무이므로 즉시 첨부파일을 다운로드한다.', correct: false, points: -30 }, { text: '발신자 주소가 미세하게 다른 점을 인지하고, IT 부서에 신고 후 이메일을 삭제한다.', correct: true, points: 20 }], explanation: '스피어 피싱(Spear Phishing) 공격입니다. 특정 대상을 정밀하게 노리며, 발신자 주소를 교묘하게 위조하는 것이 특징입니다.', hint: '보낸 사람의 이메일 주소를 자세히 살펴보세요. 정상적인 주소와 다른 점이 없나요?' },
-                { icon: '💻', title: '의문의 시스템 업데이트 알림', description: '시스템 관리자로부터 "필수 보안 업데이트"라며 특정 PowerShell 스크립트를 실행하라는 팝업 메시지가 떴습니다. 파일 흔적을 남기지 않는 방식이라고 합니다.', choices: [{ text: '정상적인 시스템 도구를 악용한 파일리스(Fileless) 맬웨어일 수 있으므로, 실행을 거부하고 관리자에게 직접 확인한다.', correct: true, points: 20 }, { text: '관리자의 지시이므로, 의심 없이 스크립트를 즉시 실행한다.', correct: false, points: -40 }], explanation: '파일리스 맬웨어는 실행 파일을 생성하지 않고 메모리에서만 동작하여 백신 탐지를 우회하는 고도의 공격입니다.', hint: '파일이 없다고 해서 안전한 것은 아닙니다. 정상적인 시스템 명령어도 악용될 수 있습니다.' },
-                { icon: '🔥', title: '랜섬웨어 감염!', description: 'PC 화면에 "모든 파일이 암호화되었다. 24시간 내에 비트코인을 지불하지 않으면 모든 데이터를 인터넷에 공개하겠다."는 메시지가 나타났습니다.', choices: [{ text: '데이터 유출이 더 큰 문제이므로, 즉시 해커에게 돈을 지불한다.', correct: false, points: -30 }, { text: '즉시 PC의 네트워크를 차단하고, "3-2-1 백업 원칙"에 따라 보관된 오프사이트 백업으로 복구를 시작한다.', correct: true, points: 30 }], explanation: '데이터 유출 협박까지 하는 이중 갈취(Double Extortion) 랜섬웨어입니다. 돈을 지불해도 데이터를 돌려받는다는 보장이 없습니다.', hint: '해커와의 협상은 최후의 수단입니다. 사전에 대비하는 것이 가장 중요합니다.' },
-                { icon: '🔑', title: 'DB 비밀번호 저장 방식', description: '신규 서비스의 사용자 비밀번호를 데이터베이스에 저장해야 합니다. 레인보우 테이블 공격을 방지하기 위해 어떤 추가 조치를 해야 할까요?', choices: [{ text: '사용자별로 임의의 문자열(Salt)을 추가하여 해시 값을 계산하는 솔팅(Salting)을 적용한다.', correct: true, points: 25 }, { text: '단순히 강력한 해시 함수(SHA-256 등)만 적용하면 충분하다.', correct: false, points: -25 }], explanation: '솔팅(Salting)은 동일한 비밀번호라도 사용자마다 다른 해시 값을 갖게 만들어, 레인보우 테이블을 무력화하는 필수적인 보안 조치입니다.', hint: '요리에 소금(Salt)을 쳐서 맛을 다르게 만드는 것을 생각해보세요.' },
-                { icon: '📞', title: '다급한 전화 한 통', description: '"검찰청입니다. 회사 계좌가 범죄에 연루되었으니, 안전 조치를 위해 우리가 알려주는 안전 계좌로 자산을 즉시 이체하십시오." 라는 전화를 받았습니다.', choices: [{ text: '전화를 끊고, 공식 검찰청 대표 번호로 직접 전화하여 사실 여부를 확인한다.', correct: true, points: 20 }, { text: '상황이 심각하므로, 지시에 따라 즉시 자산을 이체한다.', correct: false, points: -50 }], explanation: '전형적인 보이스 피싱(Vishing) 수법입니다. 공공기관은 절대 전화를 통해 자산 이체나 개인정보를 요구하지 않습니다.', hint: '공공기관이 전화를 통해 돈이나 민감한 정보를 요구하는 경우는 없습니다.' }
+                { icon: '📧', title: '의심스러운 이메일 수신', description: 'CFO에게서 "긴급: 3분기 재무 보고서 검토 요청"이라는 제목의 이메일이 왔습니다. 보낸 사람의 주소는 `cfo@go0oglecorp.com` 입니다. 어떻게 하시겠습니까?', choices: [{ text: '중요한 업무이므로 즉시 첨부파일을 다운로드한다.', correct: false, points: -30 }, { text: '발신자 주소가 미세하게 다른 점을 인지하고, IT 부서에 신고 후 이메일을 삭제한다.', correct: true, points: 0 }], explanation: '스피어 피싱(Spear Phishing) 공격입니다. 특정 대상을 정밀하게 노리며, 발신자 주소를 교묘하게 위조하는 것이 특징입니다.', hint: '보낸 사람의 이메일 주소를 자세히 살펴보세요. 정상적인 주소와 다른 점이 없나요?' },
+                { icon: '💻', title: '의문의 시스템 업데이트 알림', description: '시스템 관리자로부터 "필수 보안 업데이트"라며 특정 PowerShell 스크립트를 실행하라는 팝업 메시지가 떴습니다. 파일 흔적을 남기지 않는 방식이라고 합니다.', choices: [{ text: '정상적인 시스템 도구를 악용한 파일리스(Fileless) 맬웨어일 수 있으므로, 실행을 거부하고 관리자에게 직접 확인한다.', correct: true, points: 0 }, { text: '관리자의 지시이므로, 의심 없이 스크립트를 즉시 실행한다.', correct: false, points: -40 }], explanation: '파일리스 맬웨어는 실행 파일을 생성하지 않고 메모리에서만 동작하여 백신 탐지를 우회하는 고도의 공격입니다.', hint: '파일이 없다고 해서 안전한 것은 아닙니다. 정상적인 시스템 명령어도 악용될 수 있습니다.' },
+                { icon: '🔥', title: '랜섬웨어 감염!', description: 'PC 화면에 "모든 파일이 암호화되었다. 24시간 내에 비트코인을 지불하지 않으면 모든 데이터를 인터넷에 공개하겠다."는 메시지가 나타났습니다.', choices: [{ text: '데이터 유출이 더 큰 문제이므로, 즉시 해커에게 돈을 지불한다.', correct: false, points: -30 }, { text: '즉시 PC의 네트워크를 차단하고, "3-2-1 백업 원칙"에 따라 보관된 오프사이트 백업으로 복구를 시작한다.', correct: true, points: 0 }], explanation: '데이터 유출 협박까지 하는 이중 갈취(Double Extortion) 랜섬웨어입니다. 돈을 지불해도 데이터를 돌려받는다는 보장이 없습니다.', hint: '해커와의 협상은 최후의 수단입니다. 사전에 대비하는 것이 가장 중요합니다.' },
+                { icon: '🔑', title: 'DB 비밀번호 저장 방식', description: '신규 서비스의 사용자 비밀번호를 데이터베이스에 저장해야 합니다. 레인보우 테이블 공격을 방지하기 위해 어떤 추가 조치를 해야 할까요?', choices: [{ text: '사용자별로 임의의 문자열(Salt)을 추가하여 해시 값을 계산하는 솔팅(Salting)을 적용한다.', correct: true, points: 0 }, { text: '단순히 강력한 해시 함수(SHA-256 등)만 적용하면 충분하다.', correct: false, points: -25 }], explanation: '솔팅(Salting)은 동일한 비밀번호라도 사용자마다 다른 해시 값을 갖게 만들어, 레인보우 테이블을 무력화하는 필수적인 보안 조치입니다.', hint: '요리에 소금(Salt)을 쳐서 맛을 다르게 만드는 것을 생각해보세요.' },
+                { icon: '📞', title: '다급한 전화 한 통', description: '"검찰청입니다. 회사 계좌가 범죄에 연루되었으니, 안전 조치를 위해 우리가 알려주는 안전 계좌로 자산을 즉시 이체하십시오." 라는 전화를 받았습니다.', choices: [{ text: '전화를 끊고, 공식 검찰청 대표 번호로 직접 전화하여 사실 여부를 확인한다.', correct: true, points: 0 }, { text: '상황이 심각하므로, 지시에 따라 즉시 자산을 이체한다.', correct: false, points: -50 }], explanation: '전형적인 보이스 피싱(Vishing) 수법입니다. 공공기관은 절대 전화를 통해 자산 이체나 개인정보를 요구하지 않습니다.', hint: '공공기관이 전화를 통해 돈이나 민감한 정보를 요구하는 경우는 없습니다.' },
+                { icon: '💉', title: '느려진 검색 기능', description: "웹사이트 검색 기능에서 특정 검색어를 입력하면 응답이 유독 느려지는 현상이 발생합니다. 일반적인 검색어는 정상 속도입니다. 원인이 무엇일까요?", choices: [{ text: "시간 기반 블라인드 SQL 인젝션(Time-based Blind SQLi) 공격. SQL 쿼리 결과의 참/거짓에 따라 응답 시간을 지연시켜 데이터를 빼내고 있다.", correct: true, points: 0 }, { text: "단순히 데이터베이스에 해당 검색어에 대한 인덱스가 없어 발생하는 성능 문제다.", correct: false, points: -35 }], explanation: "블라인드 SQL 인젝션은 서버의 직접적인 응답 변화 없이, 시간 지연이나 논리적 반응 차이를 통해 데이터베이스를 공격하는 고도의 기법입니다.", hint: "왜 특정 입력에만 서버가 '고민'하는 것처럼 보일까요?" },
+                { icon: '💬', title: '사라지지 않는 악성 팝업', description: "회사 게시판의 특정 게시글을 열람하는 모든 사용자에게 악성 광고 팝업이 뜨고 있습니다. 다른 게시글은 괜찮습니다.", choices: [{ text: "저장형 XSS(Stored XSS) 공격. 공격자가 악성 스크립트를 포함한 게시글을 데이터베이스에 저장시켜, 해당 글을 보는 모든 사용자를 감염시키고 있다.", correct: true, points: 0 }, { text: "사용자 PC에 애드웨어가 설치되어 발생하는 문제이므로, PC 검사를 권고한다.", correct: false, points: -30 }], explanation: "저장형 XSS는 서버에 악성 스크립트를 저장하여 불특정 다수를 대상으로 지속적인 공격을 수행할 수 있어 매우 위험합니다.", hint: "문제가 특정 '게시물'에서만 발생한다는 점에 주목하세요." },
+                { icon: '📄', title: '문서 업로드의 함정', description: "사용자가 XML 형식의 이력서를 업로드하는 기능에서, 서버 CPU 사용률이 갑자기 100%로 치솟으며 서비스가 마비되는 현상이 발생했습니다.", choices: [{ text: "XML 외부 엔티티(XXE) 공격. 악의적으로 구성된 XML 엔티티를 통해 'Billion Laughs'와 같은 DoS 공격을 유발했거나, 서버 내부 파일을 읽으려 시도하고 있다.", correct: true, points: 0 }, { text: "단순히 파일 크기가 너무 커서 발생하는 업로드 오류이다.", correct: false, points: -35 }], explanation: "XXE는 XML 파서의 취약점을 이용해 서비스 거부(DoS) 공격, 내부 파일 접근, 서버 측 요청 위조(SSRF) 등 다양한 위협을 초래할 수 있습니다.", hint: "XML 파일 내용 자체에 문제가 있을 수 있습니다." },
+                { icon: '🆔', title: '권한을 넘어서', description: "일반 사용자가 자신의 프로필 수정 페이지 URL(`.../profile?user_id=123`)에서 `user_id`를 `1` (관리자 ID)로 변경하자 관리자 정보가 노출되고 수정까지 가능했습니다. 이는 어떤 취약점입니까?", choices: [{ text: "안전하지 않은 직접 객체 참조(IDOR). 서버 측에서 사용자의 권한을 제대로 확인하지 않고, 입력된 식별자만으로 객체에 접근을 허용했다.", correct: true, points: 0 }, { text: "URL 파라미터 변조(Parameter Tampering) 취약점이다.", correct: false, points: -25 }], explanation: "IDOR은 접근 제어 구현의 허점을 이용하는 공격입니다. 'URL 파라미터 변조'는 공격 행위를 설명하지만, 근본적인 취약점의 이름은 IDOR입니다. 모든 요청에 대해 서버 측에서 권한 검증을 철저히 해야 합니다.", hint: "서버가 사용자가 '누구인지' 확인하지 않고 '무엇을 원하는지'만 듣고 있습니다." },
+                { icon: '👥', title: '대규모 로그인 실패', description: "수많은 계정에서 로그인 실패 기록이 짧은 시간 동안 대량으로 발생하고 있습니다. 하지만 특정 계정에 대한 무차별 대입 공격(Brute-force) 패턴과는 다릅니다. 어떤 공격일까요?", choices: [{ text: "크리덴셜 스터핑(Credential Stuffing). 다른 곳에서 유출된 대량의 ID/PW 목록을 이용해 우리 서비스에 로그인을 자동 시도하고 있다.", correct: true, points: 0 }, { text: "분산 서비스 거부(DDoS) 공격으로 로그인 시스템을 마비시키려 한다.", correct: false, points: -30 }], explanation: "크리덴셜 스터핑은 사용자들이 여러 서비스에서 동일한 ID/PW를 사용하는 경향을 악용합니다. 다양한 ID에 대해 한두 번씩만 로그인을 시도하는 패턴을 보입니다.", hint: "공격자가 특정 한 명을 노리는 것이 아니라, 광범위한 '그물'을 던지고 있습니다." }
             ],
             expert: [
-                { icon: '📡', title: '지능형 지속 위협(APT)', description: "로그 분석 중, 특정 관리자 계정이 몇 주에 걸쳐 심야 시간에 아주 적은 양의 데이터를 꾸준히 외부 C&C 서버로 전송하는 것을 발견했습니다. 이는 일반적인 맬웨어와는 다른 패턴입니다. 이 상황은 무엇일 가능성이 높으며, 어떻게 대응해야 할까요?", choices: [{ text: "지능형 지속 위협(APT) 공격의 '낮고 느린(Low and Slow)' 데이터 유출 단계일 수 있다. 즉시 해당 계정을 격리하고, 침해 범위를 파악하기 위한 심층 포렌식 분석을 시작한다.", correct: true, points: 35 }, { text: "일시적인 네트워크 오류나 백그라운드 프로세스일 가능성이 높으니, 모니터링만 계속한다.", correct: false, points: -45 }], explanation: "지능형 지속 위협(APT)은 장기간에 걸쳐 특정 목표를 대상으로 은밀하게 공격을 수행합니다. '낮고 느린' 방식의 데이터 유출은 APT의 대표적인 특징으로, 즉각적인 격리 및 조사가 필수입니다.", hint: "공격이 단발성으로 끝나지 않고, 오랫동안 들키지 않으려는 의도가 보입니다." },
-                { icon: '⛓️', title: '공급망 공격', description: "최근 업데이트한 상용 모니터링 솔루션에서 알 수 없는 외부 IP로의 통신이 감지되었습니다. 해당 솔루션 공급업체는 정상적인 기능이라고 주장하지만, 우리 회사의 보안 정책과는 맞지 않습니다.", choices: [{ text: "공급망 공격(Supply Chain Attack)의 가능성을 의심한다. 즉시 해당 솔루션의 네트워크를 격리하고, 샌드박스 환경에서 트래픽을 정밀 분석하며, 공급업체에 공식적인 보안 검증 자료를 요구한다.", correct: true, points: 30 }, { text: "신뢰하는 공급업체의 공식 업데이트이므로, 해당 통신을 예외 처리하고 계속 사용한다.", correct: false, points: -40 }], explanation: "공급망 공격은 신뢰할 수 있는 소프트웨어 개발/배포 과정에 악성코드를 삽입하는 방식입니다. '제로 트러스트' 원칙에 따라 모든 것을 검증해야 합니다.", hint: "신뢰하는 파트너를 통해서도 위협은 들어올 수 있습니다." },
-                { icon: '💣', title: '제로데이 공격 대비', description: "우리가 사용하는 웹 프레임워크에서 아직 공식 패치가 발표되지 않은 원격 코드 실행(RCE) 취약점이 암시장에서 거래되고 있다는 첩보를 입수했습니다. 아직 공격 징후는 없습니다.", choices: [{ text: "제로데이 공격에 대비해, 웹 애플리케이션 방화벽(WAF)에 해당 취약점의 공격 패턴을 차단하는 가상 패치(Virtual Patching) 규칙을 긴급 적용하고, 시스템 로깅을 강화하여 모든 접근을 감시한다.", correct: true, points: 30 }, { text: "아직 공격이 없으니, 공식 패치가 나올 때까지 기다린다.", correct: false, points: -50 }], explanation: "제로데이 공격은 패치가 존재하지 않는 취약점을 이용하므로, WAF 등을 이용한 가상 패치로 선제적인 방어선을 구축하는 것이 매우 중요합니다.", hint: "공식적인 방패가 없다면, 임시로나마 막을 수 있는 가상의 방패를 만들어야 합니다." },
-                { icon: '⚡', title: '부채널 공격', description: "서버실의 암호화 가속기 카드가 동작할 때의 미세한 전력 소비 패턴을 분석하여 암호키를 탈취하려는 시도가 의심됩니다. 어떻게 방어해야 할까요?", choices: [{ text: "전형적인 부채널 공격(Side-Channel Attack)이다. 알고리즘 연산 시간에 무작위 지연을 추가하거나, 전력 패턴을 균일하게 만드는 대응 기술(Masking 등)이 적용된 하드웨어를 사용하거나, 펌웨어 업데이트를 확인한다.", correct: true, points: 25 }, { text: "물리적인 접근이 필요한 공격이므로, 서버실의 CCTV를 강화하고 출입 통제를 엄격히 한다.", correct: false, points: -35 }], explanation: "부채널 공격은 알고리즘의 논리적 약점이 아닌, 물리적 구현 과정에서 나오는 정보를 이용합니다. 따라서 물리적 보안 강화만으로는 부족하며, 하드웨어/소프트웨어 수준의 대응이 필요합니다.", hint: "공격자는 알고리즘의 논리가 아닌, 물리적 구현의 약점을 노리고 있습니다." },
-                { icon: '🧠', title: '메모리 포렌식', description: "파일리스 맬웨어에 감염된 것으로 의심되는 서버가 있습니다. 재부팅하면 메모리에 있던 증거가 모두 사라질 위험이 있습니다. 가장 먼저 해야 할 조치는?", choices: [{ text: "시스템을 재부팅하거나 끄지 않고, Volatility와 같은 도구를 사용하여 실행 중인 시스템의 메모리 전체를 덤프(Live Memory Acquisition)하여 증거를 확보한다.", correct: true, points: 30 }, { text: "즉시 서버를 재부팅하여 악성 프로세스를 종료시킨다.", correct: false, points: -40 }], explanation: "메모리는 휘발성이므로, 재부팅 시 악성코드의 흔적이 사라집니다. 파일리스 맬웨어 조사 시에는 시스템 전원을 유지한 채 메모리를 덤프하여 분석하는 라이브 포렌식이 필수입니다.", hint: "범죄 현장을 보존하는 것이 수사의 첫걸음입니다. 디지털 세계에서도 마찬가지입니다." }
+                { icon: '👻', title: '보이지 않는 위협', description: "시스템 `ps`나 `ls` 명령어로는 보이지 않는데, 네트워크 트래픽 분석 결과 정체불명의 외부 IP와 지속적으로 통신하는 프로세스가 있는 것으로 의심됩니다. 시스템 콜 테이블 후킹이 의심되는 상황입니다. 가장 먼저 취해야 할 조치는?", choices: [{ text: "시스템을 재부팅하지 않고, Live CD나 USB로 부팅하여 신뢰할 수 있는 환경에서 메모리 덤프와 파일 시스템을 분석해 루트킷의 흔적을 찾는다.", correct: true, points: 0 }, { text: "`lsof`와 `netstat` 명령어로 의심스러운 프로세스를 찾아 `kill -9`로 즉시 종료시킨다.", correct: false, points: -35 }], explanation: "커널 레벨 루트킷은 운영체제의 핵심부를 조작하여 자신을 은폐하므로, 감염된 시스템 내의 도구로는 탐지가 거의 불가능합니다. 신뢰할 수 있는 외부 환경에서의 분석이 필수적입니다.", hint: "적은 이미 집 안(커널)에 있습니다. 집 안의 지도로는 적을 찾을 수 없습니다." },
+                { icon: '✉️', title: 'DNS 트래픽의 비밀', description: "방화벽 로그에서 특정 직원의 PC가 외부 DNS 서버에 비정상적으로 긴 서브도메인 질의(e.g., `[encoded_data].leaked.com`)를 대량으로 보내는 것이 발견되었습니다. 이는 어떤 공격일 가능성이 높습니까?", choices: [{ text: "DNS 터널링을 이용한 데이터 유출. DNS 쿼리에 데이터를 숨겨 외부로 빼돌리고 있다.", correct: true, points: 0 }, { text: "DDoS 공격의 일종인 DNS 증폭 공격을 수행하고 있다.", correct: false, points: -30 }], explanation: "DNS 터널링은 방화벽에서 허용된 경우가 많은 DNS 프로토콜을 이용해 데이터를 유출하거나 C&C 통신을 하는 은밀한 공격 기법입니다. DNS 증폭 공격은 패턴이 다릅니다.", hint: "왜 DNS 요청의 길이가 이렇게 길고, 무작위 문자열처럼 보일까요?" },
+                { icon: '🔥', title: '끝나지 않은 악몽, Log4j', description: "회사의 레거시 Java 애플리케이션 서버에서 Log4j 취약점(CVE-2021-44228)을 이용한 원격 코드 실행(RCE) 시도가 탐지되었습니다. 즉시 패치는 불가능한 상황일 때, 가장 효과적인 임시 방어 조치는?", choices: [{ text: "웹 방화벽(WAF)에서 `${jndi:ldap` 등 의심스러운 문자열 패턴을 차단하고, JVM 실행 옵션에 `log4j2.formatMsgNoLookups=true`를 추가하여 JNDI 조회를 비활성화한다.", correct: true, points: 0 }, { text: "해당 서버의 외부 접근을 모두 차단하고 서비스를 중단한다.", correct: false, points: -30 }], explanation: "Log4Shell은 JNDI Lookup 기능을 통해 발생합니다. 패치가 어렵다면, WAF로 공격 패턴을 막고 JVM 옵션으로 취약한 기능을 비활성화하는 것이 서비스 중단 없이 대응하는 최선의 임시 조치입니다.", hint: "공격의 핵심 원인인 'JNDI 조회(Lookup)' 기능을 막아야 합니다." },
+                { icon: '🧩', title: '조각난 코드의 역습', description: "DEP(Data Execution Prevention)가 활성화된 서버의 애플리케이션이 버퍼 오버플로우로 비정상 종료되었습니다. 스택 분석 결과, 직접 주입된 쉘코드가 아닌, 라이브러리 내 기존 코드 조각(gadget)들의 주소들이 연속적으로 호출된 흔적이 발견되었습니다. 이는 어떤 공격 기법입니까?", choices: [{ text: "Return-Oriented Programming (ROP) 공격. 실행 가능한 기존 코드 조각들을 엮어 공격자가 원하는 행위를 수행했다.", correct: true, points: 0 }, { text: "스택 카나리(Stack Canary) 값을 덮어쓰는 단순 버퍼 오버플로우 공격이다.", correct: false, points: -35 }], explanation: "ROP는 DEP와 같은 실행 방지 기술을 우회하기 위해, 이미 메모리에 존재하는 코드 조각(가젯)들을 재조합하여 악의적인 기능을 실행하는 고도의 메모리 해킹 기법입니다.", hint: "공격자는 새로운 코드를 만들지 않고, 기존 코드의 '부품'들을 재조립했습니다." },
+                { icon: '☁️', title: '클라우드의 속삭임', description: "사용자가 입력한 URL의 이미지를 가져오는 기능에서, `http://169.254.169.254/latest/meta-data/` 와 같은 내부 IP 주소로 요청을 보내는 로그가 발견되었습니다. 공격자가 무엇을 노리는 것일까요?", choices: [{ text: "서버 측 요청 위조(SSRF) 취약점을 이용해 클라우드 인스턴스의 메타데이터 서비스에 접근, 임시 자격증명을 탈취하려는 시도.", correct: true, points: 0 }, { text: "웹 서버의 설정 파일을 읽으려는 로컬 파일 삽입(LFI) 공격이다.", correct: false, points: -30 }], explanation: "169.254.169.254는 클라우드 환경에서 인스턴스 메타데이터에 접근하기 위한 특수 IP입니다. SSRF 취약점을 통해 이 주소에 접근하면 인스턴스의 IAM 역할 자격증명을 탈취하여 클라우드 계정 전체를 장악할 수 있습니다.", hint: "`169.254.169.254`라는 IP 주소는 클라우드 환경에서 어떤 특별한 의미를 가질까요?" },
+                { icon: '☢️', title: '유령의 속삭임', description: "물리적으로 분리된 서버의 암호화 키가 유출된 것으로 의심됩니다. 로그 상으로는 어떤 접근 흔적도 없습니다. 분석 결과, 공격자는 서버 CPU의 미세한 전력 소비 패턴 변화를 측정하여 키를 추론한 것으로 보입니다. 어떤 공격입니까?", choices: [{ text: "부채널 공격(Side-Channel Attack). 암호화 연산 과정에서 발생하는 물리적 현상(전력, 전자기파, 소리 등)을 분석하여 비밀 정보를 빼냈다.", correct: true, points: 0 }, { text: "CPU의 투기적 실행(Speculative Execution) 취약점인 멜트다운(Meltdown)을 이용했다.", correct: false, points: -35 }], explanation: "부채널 공격은 알고리즘의 논리적 약점이 아닌, 물리적 구현체의 특성을 이용하는 매우 정교한 공격입니다. 멜트다운은 메모리 접근 권한을 우회하는 다른 종류의 하드웨어 취약점입니다.", hint: "공격은 디지털 세계가 아닌, 물리 세계의 '흔적'을 통해 이루어졌습니다." },
+                { icon: '💥', title: '예상치 못한 권한 상승', description: "최신 버전으로 패치된 리눅스 서버에서 일반 사용자 계정이 갑자기 루트(root) 권한을 획득하는 사고가 발생했습니다. 원인 분석 결과, 페이지 캐시에 있는 파일에 데이터를 덮어쓸 때 참조 카운터 관리에 결함이 있어 임의의 파일에 쓰기 권한이 생기는 취약점이 악용되었습니다.", choices: [{ text: "Dirty Pipe (CVE-2022-0847) 취약점. 리눅스 커널의 파이프(pipe) 메커니즘 결함을 이용한 로컬 권한 상승 공격이다.", correct: true, points: 0 }, { text: "오래된 SUID 비트가 설정된 바이너리를 이용한 전형적인 권한 상승 공격이다.", correct: false, points: -30 }], explanation: "Dirty Pipe는 비교적 최근에 발견된 심각한 리눅스 커널 취약점으로, 패치되지 않은 시스템에서 광범위하게 악용될 수 있었습니다. 이는 SUID 비트와는 관련이 없는 커널 자체의 결함입니다.", hint: "문제의 원인은 사용자 프로그램이 아닌, 운영체제 커널의 핵심 기능에 있었습니다." },
+                { icon: '📨', title: '연쇄적인 침투', description: "외부에 노출된 Microsoft Exchange 서버가 침해당했습니다. 공격자는 서버 측 요청 위조(SSRF) 취약점으로 내부를 스캔하고, 이후 임의 파일 쓰기 취약점으로 웹쉘을 업로드하여 서버를 완전히 장악했습니다. 이 공격 체인은 무엇으로 유명합니까?", choices: [{ text: "ProxyLogon. 여러 취약점을 연쇄적으로 결합(Chaining)하여 인증을 우회하고 원격 코드를 실행하는 고도의 공격이다.", correct: true, points: 0 }, { text: "EternalBlue. SMB 프로토콜의 취약점을 이용한 공격이다.", correct: false, points: -30 }], explanation: "ProxyLogon은 2021년 초 전 세계 수많은 Exchange 서버를 감염시킨 심각한 공격 체인입니다. 여러 개의 취약점을 순차적으로 이용하는 것이 특징이며, EternalBlue는 워너크라이 랜섬웨어에 사용된 SMB 취약점입니다.", hint: "하나의 취약점이 아닌, 여러 개의 취약점이 '사슬'처럼 연결되어 공격이 성공했습니다." },
+                { icon: '🤖', title: '오염된 학습 데이터', description: "회사의 AI 기반 스팸 메일 분류 모델의 성능이 갑자기 저하되었습니다. 분석 결과, 공격자가 정상 메일처럼 보이는 데이터에 교묘하게 악성 패턴을 포함시켜 지속적으로 모델을 학습시켜, 모델의 판단 경계를 왜곡시킨 것으로 드러났습니다.", choices: [{ text: "데이터 포이즈닝(Data Poisoning) 공격. 머신러닝 모델의 학습 데이터셋을 오염시켜 모델 자체를 손상시키는 공격이다.", correct: true, points: 0 }, { text: "회피 공격(Evasion Attack). 모델 자체는 바꾸지 않고, 입력 데이터를 조작하여 모델의 오분류를 유도하는 공격이다.", correct: false, points: -25 }], explanation: "데이터 포이즈닝은 모델의 학습 단계에 개입하여 모델의 신뢰성을 근본적으로 훼손하는 적대적 머신러닝(Adversarial ML) 공격입니다. 회피 공격은 이미 학습된 모델을 속이는 데 중점을 둡니다.", hint: "공격자는 물고기를 주는 대신, 물고기를 잡는 '방법'(모델) 자체를 망가뜨렸습니다." },
+                { icon: '🌊', title: '프로토콜의 허점', description: "네트워크 경계에서 HTTP/2 트래픽을 HTTP/1.1로 변환하는 리버스 프록시를 사용 중입니다. 공격자가 교묘하게 조작된 HTTP/2 요청을 보내자, 프록시가 이를 잘못 해석하여 뒷단의 웹서버에 의도치 않은 추가 요청을 보내 내부 시스템을 공격하는 데 성공했습니다.", choices: [{ text: "HTTP 요청 스머글링(HTTP Request Smuggling). 프론트엔드와 백엔드 서버가 요청을 해석하는 방식의 차이를 이용해 요청을 숨겨 보내는 공격이다.", correct: true, points: 0 }, { text: "HTTP 플러딩(HTTP Flooding) DDoS 공격이다.", correct: false, points: -35 }], explanation: "HTTP 요청 스머글링은 프로토콜 간의 해석 차이나 Content-Length와 Transfer-Encoding 헤더 처리 방식의 차이를 악용하는 매우 정교한 공격입니다. 이를 통해 웹 캐시를 오염시키거나 다른 사용자의 요청을 탈취할 수 있습니다.", hint: "통역사(프록시)가 두 언어(HTTP/2, HTTP/1.1)를 완벽하게 번역하지 못해 생긴 문제입니다." }
             ]
         };
         
@@ -215,8 +291,11 @@
         let score = 100;
         let timerInterval;
         let currentDifficulty = '';
-        const TIME_LIMIT = 15;
-        const NUM_SCENARIOS_PER_GAME = 5;
+        const NUM_SCENARIOS_PER_GAME = 10;
+        let adminMode = false;
+        let keySequence = [];
+        const adminKeySequence = ['a', 'd', 'm', 'i', 'n', 'm', 'o', 'd', 'e'];
+        let correctChoiceButton = null;
 
         // --- 사운드 효과 ---
         let synth;
@@ -232,6 +311,7 @@
         const playCorrectSound = () => playSound("C5");
         const playIncorrectSound = () => playSound("G3");
         const playClickSound = () => playSound("C4");
+        const playAdminSound = () => { if(synth) synth.triggerAttackRelease("E6", "8n"); };
 
         // --- 게임 로직 ---
         function shuffleArray(array) {
@@ -245,6 +325,7 @@
             playClickSound();
             startScreen.classList.add('hidden');
             difficultyScreen.classList.remove('hidden');
+            adminGameControls.classList.add('hidden');
         }
 
         function initializeGame(difficulty) {
@@ -263,6 +344,7 @@
             difficultyScreen.classList.add('hidden');
             endScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
+            if(adminMode) adminGameControls.classList.remove('hidden');
             leaderboardFormContainer.classList.add('hidden');
             leaderboardForm.reset();
 
@@ -275,6 +357,13 @@
                 return;
             }
             
+            // 이전 문제의 정답 하이라이트 제거
+            if (correctChoiceButton) {
+                correctChoiceButton.classList.remove('admin-correct-answer');
+                correctChoiceButton = null;
+            }
+
+            progressDisplay.textContent = `${currentScenarioIndex + 1}/${NUM_SCENARIOS_PER_GAME}`;
             const scenario = currentScenarios[currentScenarioIndex];
             scenarioIcon.textContent = scenario.icon;
             scenarioTitle.textContent = scenario.title;
@@ -285,24 +374,33 @@
             hintButton.classList.remove('opacity-50', 'cursor-not-allowed');
 
             choicesContainer.innerHTML = '';
-            scenario.choices.forEach(choice => {
+            
+            const shuffledChoices = [...scenario.choices];
+            shuffleArray(shuffledChoices);
+
+            shuffledChoices.forEach(choice => {
                 const button = document.createElement('button');
                 button.textContent = choice.text;
                 button.classList.add('w-full', 'p-4', 'rounded-lg', 'text-left', 'font-semibold', 'btn', 'bg-gray-700', 'hover:bg-gray-600');
                 button.onclick = () => selectChoice(choice);
                 choicesContainer.appendChild(button);
+                
+                if (choice.correct) {
+                    correctChoiceButton = button; // 정답 버튼 참조 저장
+                }
             });
             
             startTimer();
         }
         
         function startTimer() {
-            let timeLeft = TIME_LIMIT;
+            const timeLimit = currentDifficulty === 'expert' ? 25 : 15;
+            let timeLeft = timeLimit;
             timerBar.style.transition = 'none';
             timerBar.style.width = '100%';
             
             setTimeout(() => {
-                timerBar.style.transition = `width ${TIME_LIMIT}s linear`;
+                timerBar.style.transition = `width ${timeLimit}s linear`;
                 timerBar.style.width = '0%';
             }, 50);
 
@@ -318,14 +416,22 @@
         
         function timeOut() {
             playIncorrectSound();
-            score -= 20; // 시간 초과 시 감점
+            score -= 10;
             updateScore();
             showFeedback(false, '시간 초과!', '신속한 결정도 보안 담당자의 중요한 역량입니다. 위협 상황에서는 빠른 판단이 필요합니다.');
         }
 
         function selectChoice(choice) {
             clearInterval(timerInterval);
-            if (choice.correct) { playCorrectSound(); } else { playIncorrectSound(); }
+            if (choice.correct) { 
+                playCorrectSound(); 
+            } else { 
+                playIncorrectSound();
+            }
+            // 관리자 모드에서 정답 보기 하이라이트 제거
+            if (correctChoiceButton && correctChoiceButton.classList.contains('admin-correct-answer')) {
+                 correctChoiceButton.classList.remove('admin-correct-answer');
+            }
             score += choice.points;
             updateScore();
             showFeedback(choice.correct, choice.correct ? '정답입니다!' : '위험합니다!', currentScenarios[currentScenarioIndex].explanation);
@@ -366,12 +472,13 @@
         function endGame() {
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
+            adminGameControls.classList.add('hidden');
             
             document.getElementById('final-score').textContent = score;
             const endTitle = document.getElementById('end-title');
             const endMessage = document.getElementById('end-message');
 
-            endTitle.className = 'text-5xl font-bold mb-4'; // Reset classes
+            endTitle.className = 'text-5xl font-bold mb-4';
             if (score >= 90) {
                 endTitle.textContent = '🏆 전설의 보안 전문가';
                 endMessage.textContent = '완벽한 판단력입니다! 당신이 있는 한 우리 회사는 철벽 방어!';
@@ -391,7 +498,6 @@
             }
             
             const leaderboard = getLeaderboard();
-            // 리더보드가 5개 미만이거나, 현재 점수가 리더보드 최하위 점수보다 높을 때만 이름 입력창 표시
             if (leaderboard.length < 5 || score > (leaderboard[leaderboard.length - 1]?.score || 0)) {
                 leaderboardFormContainer.classList.remove('hidden');
             }
@@ -428,7 +534,7 @@
             const leaderboard = getLeaderboard();
             leaderboard.push({ name, score, difficulty });
             leaderboard.sort((a, b) => b.score - a.score);
-            const newLeaderboard = leaderboard.slice(0, 5); // 상위 5개만 저장
+            const newLeaderboard = leaderboard.slice(0, 5);
             saveLeaderboard(newLeaderboard);
         }
 
@@ -470,11 +576,72 @@
             if (playerName) {
                 addScoreToLeaderboard(playerName, score, currentDifficulty);
                 leaderboardFormContainer.classList.add('hidden');
-                // 등록 후 바로 업데이트된 리더보드를 보여줌
                 displayLeaderboard();
             }
         });
-        
+
+        // --- 전체 화면 로직 ---
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenIcons() {
+            if (document.fullscreenElement) {
+                fullscreenEnterIcon.classList.add('hidden');
+                fullscreenExitIcon.classList.remove('hidden');
+            } else {
+                fullscreenEnterIcon.classList.remove('hidden');
+                fullscreenExitIcon.classList.add('hidden');
+            }
+        }
+
+        // --- 관리자 모드 로직 ---
+        function activateAdminMode() {
+            adminMode = true;
+            adminPanel.classList.remove('hidden');
+            playAdminSound();
+            if(!gameScreen.classList.contains('hidden')) {
+                adminGameControls.classList.remove('hidden');
+            }
+            updateAdminLeaderboard();
+        }
+
+        function updateAdminLeaderboard() {
+            const leaderboard = getLeaderboard();
+            adminLeaderboardContainer.innerHTML = '';
+            if (leaderboard.length === 0) {
+                adminLeaderboardContainer.innerHTML = '<p class="text-sm text-gray-400">랭킹 데이터 없음</p>';
+                return;
+            }
+            leaderboard.forEach((entry, index) => {
+                const rankItem = document.createElement('div');
+                rankItem.className = 'flex justify-between items-center bg-gray-800 p-1 rounded';
+                rankItem.innerHTML = `
+                    <span class="text-sm">${index + 1}. ${entry.name} (${entry.score}점)</span>
+                    <button data-index="${index}" class="delete-rank-btn text-red-500 hover:text-red-400 text-xs font-bold">삭제</button>
+                `;
+                adminLeaderboardContainer.appendChild(rankItem);
+            });
+
+            document.querySelectorAll('.delete-rank-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const indexToDelete = parseInt(e.target.dataset.index, 10);
+                    let currentRanks = getLeaderboard();
+                    currentRanks.splice(indexToDelete, 1);
+                    saveLeaderboard(currentRanks);
+                    updateAdminLeaderboard();
+                });
+            });
+        }
+
         // --- 이벤트 리스너 ---
         startButton.addEventListener('click', showDifficultyScreen);
 
@@ -488,7 +655,6 @@
         restartButton.addEventListener('click', () => {
             playClickSound();
             endScreen.classList.add('hidden');
-            // 리더보드 모달이 열려있을 수 있으므로 닫아준다.
             leaderboardModal.classList.add('hidden'); 
             difficultyScreen.classList.remove('hidden');
         });
@@ -510,7 +676,44 @@
             leaderboardModal.classList.add('hidden');
         });
 
+        endScreenLeaderboardButton.addEventListener('click', () => {
+            playClickSound();
+            displayLeaderboard();
+        });
+
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        document.addEventListener('fullscreenchange', updateFullscreenIcons);
+
+        // 관리자 모드 진입 리스너
+        document.addEventListener('keydown', (e) => {
+            keySequence.push(e.key.toLowerCase());
+            keySequence = keySequence.slice(-adminKeySequence.length);
+            if (JSON.stringify(keySequence) === JSON.stringify(adminKeySequence)) {
+                activateAdminMode();
+            }
+        });
+
+        // 관리자 패널: 정답 보기
+        showAnswerButton.addEventListener('click', () => {
+            if (correctChoiceButton) {
+                correctChoiceButton.classList.add('admin-correct-answer');
+            }
+        });
+
+        // 관리자 패널: 랭킹 추가
+        addRankForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('admin-name').value;
+            const score = parseInt(document.getElementById('admin-score').value, 10);
+            const difficulty = document.getElementById('admin-difficulty').value;
+
+            if (name && !isNaN(score)) {
+                addScoreToLeaderboard(name, score, difficulty);
+                updateAdminLeaderboard();
+                addRankForm.reset();
+            }
+        });
+
     </script>
 </body>
 </html>
-
