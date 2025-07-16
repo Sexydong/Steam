@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -50,7 +51,6 @@
 
     <div id="game-container" class="w-full max-w-2xl mx-auto">
 
-        <!-- 시작 화면 -->
         <div id="start-screen" class="text-center">
             <h1 class="text-4xl md:text-5xl font-bold mb-4 text-cyan-400">정보보안 전문가 챌린지</h1>
             <p class="text-lg md:text-xl text-gray-300 mb-8">실시간으로 발생하는 사이버 위협에 맞서<br>회사를 안전하게 지켜주세요!</p>
@@ -64,7 +64,6 @@
             </div>
         </div>
         
-        <!-- 난이도 선택 화면 -->
         <div id="difficulty-screen" class="hidden text-center">
             <h2 class="text-3xl font-bold mb-8 text-cyan-400">난이도를 선택하세요</h2>
             <div class="space-y-4">
@@ -83,9 +82,7 @@
             </div>
         </div>
 
-        <!-- 게임 화면 -->
         <div id="game-screen" class="hidden">
-            <!-- UI Elements: Score, Timer, Scenario Card -->
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-1">
                     <span class="font-bold text-lg">회사 보안 상태</span>
@@ -114,7 +111,6 @@
             </div>
         </div>
 
-        <!-- 모달 (피드백, 리더보드) -->
         <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 modal">
             <div id="feedback-content" class="text-center rounded-2xl p-8 max-w-lg w-full card">
                 <h3 id="feedback-title" class="text-3xl font-bold mb-4"></h3>
@@ -135,13 +131,12 @@
             </div>
         </div>
 
-        <!-- 종료 화면 -->
         <div id="end-screen" class="hidden text-center">
             <h2 class="text-2xl font-bold mb-2 text-gray-400">챌린지 종료!</h2>
             <h1 id="end-title" class="text-5xl font-bold mb-4"></h1>
             <p class="text-2xl text-gray-200 mb-2">최종 점수: <span id="final-score" class="font-bold text-cyan-400"></span>점</p>
             <p id="end-message" class="text-lg text-gray-300 mb-8"></p>
-            <div id="leaderboard-form-container" class="mb-8 max-w-sm mx-auto">
+            <div id="leaderboard-form-container" class="mb-8 max-w-sm mx-auto hidden">
                 <p class="mb-2">명예의 전당에 이름을 남기세요!</p>
                 <form id="leaderboard-form" class="flex gap-2">
                     <input type="text" id="player-name" placeholder="이름 (10자 이내)" maxlength="10" required class="flex-grow bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
@@ -279,7 +274,7 @@
                 endGame();
                 return;
             }
-            // ... (나머지 로직은 이전과 유사)
+            
             const scenario = currentScenarios[currentScenarioIndex];
             scenarioIcon.textContent = scenario.icon;
             scenarioTitle.textContent = scenario.title;
@@ -396,6 +391,7 @@
             }
             
             const leaderboard = getLeaderboard();
+            // 리더보드가 5개 미만이거나, 현재 점수가 리더보드 최하위 점수보다 높을 때만 이름 입력창 표시
             if (leaderboard.length < 5 || score > (leaderboard[leaderboard.length - 1]?.score || 0)) {
                 leaderboardFormContainer.classList.remove('hidden');
             }
@@ -412,7 +408,7 @@
             hintButton.classList.add('opacity-50', 'cursor-not-allowed');
         });
 
-        // --- 리더보드 로직 ---
+        // --- 리더보드 로직 (localStorage 사용) ---
         const LEADERBOARD_KEY = 'securityChallengeLeaderboard_v3';
         const difficultyMap = {
             easy: '신입',
@@ -423,16 +419,19 @@
         function getLeaderboard() {
             return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
         }
+
         function saveLeaderboard(leaderboard) {
             localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
         }
+
         function addScoreToLeaderboard(name, score, difficulty) {
             const leaderboard = getLeaderboard();
             leaderboard.push({ name, score, difficulty });
             leaderboard.sort((a, b) => b.score - a.score);
-            const newLeaderboard = leaderboard.slice(0, 5);
+            const newLeaderboard = leaderboard.slice(0, 5); // 상위 5개만 저장
             saveLeaderboard(newLeaderboard);
         }
+
         function displayLeaderboard() {
             const leaderboard = getLeaderboard();
             leaderboardList.innerHTML = '';
@@ -442,10 +441,12 @@
                 leaderboard.forEach((entry, index) => {
                     const li = document.createElement('li');
                     li.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'rounded-md');
+                    
                     const difficultyBadge = `<span class="text-xs font-bold px-2 py-1 rounded-full ${
                         entry.difficulty === 'easy' ? 'bg-green-500 text-white' : 
                         entry.difficulty === 'hard' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
                     }">${difficultyMap[entry.difficulty]}</span>`;
+                    
                     li.innerHTML = `
                         <div class="flex items-center gap-2">
                             <span class="font-bold text-lg">${index + 1}. ${entry.name}</span>
@@ -469,33 +470,41 @@
             if (playerName) {
                 addScoreToLeaderboard(playerName, score, currentDifficulty);
                 leaderboardFormContainer.classList.add('hidden');
+                // 등록 후 바로 업데이트된 리더보드를 보여줌
                 displayLeaderboard();
             }
         });
         
         // --- 이벤트 리스너 ---
         startButton.addEventListener('click', showDifficultyScreen);
+
         difficultyScreen.addEventListener('click', (e) => {
             const button = e.target.closest('button');
             if (button && button.dataset.difficulty) {
                 initializeGame(button.dataset.difficulty);
             }
         });
+
         restartButton.addEventListener('click', () => {
             playClickSound();
             endScreen.classList.add('hidden');
+            // 리더보드 모달이 열려있을 수 있으므로 닫아준다.
+            leaderboardModal.classList.add('hidden'); 
             difficultyScreen.classList.remove('hidden');
         });
+
         nextButton.addEventListener('click', () => {
             playClickSound();
             currentScenarioIndex++;
             feedbackModal.classList.add('hidden');
             loadScenario();
         });
+
         showLeaderboardButton.addEventListener('click', () => {
             playClickSound();
             displayLeaderboard();
         });
+        
         closeLeaderboardButton.addEventListener('click', () => {
             playClickSound();
             leaderboardModal.classList.add('hidden');
