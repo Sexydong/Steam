@@ -3,345 +3,502 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>정보보안 챌린지 (랭킹 기능)</title>
+    <title>정보보안 전문가 챌린지 v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
         }
-        .answer-btn.correct {
-            background-color: #22c55e !important; /* green-500 */
-            color: white;
-            border-color: #16a34a; /* green-600 */
+        .card {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .answer-btn.incorrect {
-            background-color: #ef4444 !important; /* red-500 */
-            color: white;
-            border-color: #dc2626; /* red-600 */
+        .btn {
+            transition: all 0.3s ease;
         }
-        .modal-backdrop {
-            background-color: rgba(0,0,0,0.75);
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .security-bar-inner {
+            transition: width 0.5s ease-in-out;
+        }
+        #timer-bar {
+            transition: width 1s linear;
+        }
+        .modal {
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .hint-box {
+            animation: fadeInHint 0.5s ease;
+        }
+        @keyframes fadeInHint {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    <!-- User Info Modal -->
-    <div id="user-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-        <div class="bg-white text-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all">
-            <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">정보를 입력하세요</h2>
-            <form id="user-form">
-                <div class="mb-4">
-                    <label for="grade" class="block text-sm font-medium text-gray-600 mb-1">학년</label>
-                    <input type="number" id="grade" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <div class="mb-4">
-                    <label for="classNum" class="block text-sm font-medium text-gray-600 mb-1">반</label>
-                    <input type="number" id="classNum" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <div class="mb-4">
-                    <label for="studentNum" class="block text-sm font-medium text-gray-600 mb-1">번호</label>
-                    <input type="number" id="studentNum" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <div class="mb-6">
-                    <label for="name" class="block text-sm font-medium text-gray-600 mb-1">이름</label>
-                    <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition duration-300">챌린지 시작!</button>
-            </form>
+    <div id="game-container" class="w-full max-w-2xl mx-auto">
+
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 text-cyan-400">정보보안 전문가 챌린지</h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-8">실시간으로 발생하는 사이버 위협에 맞서<br>회사를 안전하게 지켜주세요!</p>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button id="start-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn w-full sm:w-auto">
+                    도전 시작!
+                </button>
+                <button id="show-leaderboard-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn w-full sm:w-auto">
+                    🏆 리더보드
+                </button>
+            </div>
         </div>
-    </div>
-
-    <div id="main-content" class="w-full max-w-7xl mx-auto hidden">
-        <h1 class="text-4xl font-bold text-center mb-2 text-indigo-400">🛡️ 정보보안 챌린지 🛡️</h1>
-        <p id="welcome-message" class="text-center text-gray-400 mb-8"></p>
         
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Quiz Container -->
-            <div id="quiz-container" class="bg-gray-800 p-8 rounded-2xl shadow-lg w-full lg:w-2/3">
-                <div id="question-container" class="mb-6">
-                    <div class="flex justify-between items-center mb-4">
-                         <h2 id="question-number" class="text-xl font-bold text-indigo-300">문제 1</h2>
-                         <div class="text-lg font-semibold text-yellow-400">점수: <span id="score">0</span></div>
+        <!-- 난이도 선택 화면 -->
+        <div id="difficulty-screen" class="hidden text-center">
+            <h2 class="text-3xl font-bold mb-8 text-cyan-400">난이도를 선택하세요</h2>
+            <div class="space-y-4">
+                <button data-difficulty="easy" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-green-600 hover:bg-green-500">
+                    <span class="text-2xl">😄 신입사원</span><br>
+                    <span class="text-base font-normal">기본적인 정보보안 개념을 학습합니다.</span>
+                </button>
+                <button data-difficulty="hard" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-yellow-600 hover:bg-yellow-500">
+                    <span class="text-2xl">😎 보안 전문가</span><br>
+                    <span class="text-base font-normal">고도화된 공격에 대응하는 방법을 다룹니다.</span>
+                </button>
+                <button data-difficulty="expert" class="w-full p-6 rounded-lg text-left font-bold text-xl btn bg-red-600 hover:bg-red-500">
+                    <span class="text-2xl">😈 전설의 해커</span><br>
+                    <span class="text-base font-normal">최고 수준의 보안 위협에 도전합니다. (매우 어려움)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" class="hidden">
+            <!-- UI Elements: Score, Timer, Scenario Card -->
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-lg">회사 보안 상태</span>
+                    <span id="score" class="font-bold text-lg text-cyan-400">100점</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-6">
+                    <div id="security-bar" class="bg-gradient-to-r from-green-400 to-cyan-500 h-6 rounded-full security-bar-inner" style="width: 100%;"></div>
+                </div>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
+                <div id="timer-bar" class="bg-yellow-400 h-2.5 rounded-full" style="width: 100%;"></div>
+            </div>
+            <div id="scenario-container" class="card rounded-2xl p-6 md:p-8 shadow-2xl">
+                <div class="flex items-start mb-4">
+                    <div id="scenario-icon" class="mr-4 text-4xl"></div>
+                    <div>
+                        <h2 id="scenario-title" class="text-2xl font-bold mb-2"></h2>
+                        <p id="scenario-description" class="text-gray-200"></p>
                     </div>
-                    <p id="question-element" class="text-2xl leading-relaxed min-h-[6rem]">질문이 여기에 표시됩니다.</p>
                 </div>
-                <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Answer buttons will be generated here -->
-                </div>
-                <div class="mt-8 flex justify-end">
-                    <button id="next-btn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition duration-300 hidden">다음 문제</button>
-                </div>
-            </div>
-
-            <!-- Ranking Board -->
-            <div class="w-full lg:w-1/3 bg-gray-800 p-6 rounded-2xl shadow-lg">
-                <h2 class="text-3xl font-bold mb-6 text-center text-yellow-400">🏆 실시간 랭킹 🏆</h2>
-                <div class="overflow-y-auto max-h-[500px]">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs text-gray-300 uppercase bg-gray-700">
-                            <tr>
-                                <th scope="col" class="px-4 py-3">순위</th>
-                                <th scope="col" class="px-4 py-3">정보</th>
-                                <th scope="col" class="px-4 py-3">이름</th>
-                                <th scope="col" class="px-4 py-3 text-right">점수</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ranking-body">
-                            <!-- Ranking data will be inserted here -->
-                        </tbody>
-                    </table>
+                <div id="hint-container" class="my-4"></div>
+                <div id="choices-container" class="mt-6 space-y-4"></div>
+                <div class="text-right mt-4">
+                    <button id="hint-button" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg text-sm btn">-5점 힌트 보기</button>
                 </div>
             </div>
         </div>
+
+        <!-- 모달 (피드백, 리더보드) -->
+        <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 modal">
+            <div id="feedback-content" class="text-center rounded-2xl p-8 max-w-lg w-full card">
+                <h3 id="feedback-title" class="text-3xl font-bold mb-4"></h3>
+                <p id="feedback-explanation" class="text-lg mb-6"></p>
+                <button id="next-button" class="text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn">
+                    다음으로
+                </button>
+            </div>
+        </div>
+        
+        <div id="leaderboard-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 modal">
+            <div class="bg-gray-800 text-center rounded-2xl p-8 max-w-lg w-full card">
+                <h3 class="text-3xl font-bold mb-6 text-yellow-400">🏆 명예의 전당 🏆</h3>
+                <ol id="leaderboard-list" class="text-left space-y-2 text-lg mb-6"></ol>
+                <button id="close-leaderboard-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-full text-lg btn">
+                    닫기
+                </button>
+            </div>
+        </div>
+
+        <!-- 종료 화면 -->
+        <div id="end-screen" class="hidden text-center">
+            <h2 class="text-2xl font-bold mb-2 text-gray-400">챌린지 종료!</h2>
+            <h1 id="end-title" class="text-5xl font-bold mb-4"></h1>
+            <p class="text-2xl text-gray-200 mb-2">최종 점수: <span id="final-score" class="font-bold text-cyan-400"></span>점</p>
+            <p id="end-message" class="text-lg text-gray-300 mb-8"></p>
+            <div id="leaderboard-form-container" class="mb-8 max-w-sm mx-auto">
+                <p class="mb-2">명예의 전당에 이름을 남기세요!</p>
+                <form id="leaderboard-form" class="flex gap-2">
+                    <input type="text" id="player-name" placeholder="이름 (10자 이내)" maxlength="10" required class="flex-grow bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg btn">등록</button>
+                </form>
+            </div>
+            <button id="restart-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg btn">
+                다시 도전하기
+            </button>
+        </div>
     </div>
 
-
-    <script type="module">
-        // Firebase 11.6.1 imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // --- CONFIGURATION ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'security-challenge-game';
+    <script>
+        // --- DOM 요소 ---
+        const startScreen = document.getElementById('start-screen');
+        const difficultyScreen = document.getElementById('difficulty-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
         
-        // --- FIREBASE INITIALIZATION ---
-        let app, auth, db;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-            document.body.innerHTML = "Firebase 설정에 실패했습니다. 관리자에게 문의하세요.";
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        
+        const scoreDisplay = document.getElementById('score');
+        const securityBar = document.getElementById('security-bar');
+        const timerBar = document.getElementById('timer-bar');
+        
+        const scenarioIcon = document.getElementById('scenario-icon');
+        const scenarioTitle = document.getElementById('scenario-title');
+        const scenarioDescription = document.getElementById('scenario-description');
+        const choicesContainer = document.getElementById('choices-container');
+        const hintContainer = document.getElementById('hint-container');
+        const hintButton = document.getElementById('hint-button');
+
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackContent = document.getElementById('feedback-content');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackExplanation = document.getElementById('feedback-explanation');
+        const nextButton = document.getElementById('next-button');
+
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        const showLeaderboardButton = document.getElementById('show-leaderboard-button');
+        const closeLeaderboardButton = document.getElementById('close-leaderboard-button');
+        const leaderboardList = document.getElementById('leaderboard-list');
+        const leaderboardFormContainer = document.getElementById('leaderboard-form-container');
+        const leaderboardForm = document.getElementById('leaderboard-form');
+        const playerNameInput = document.getElementById('player-name');
+
+        // --- 시나리오 데이터 ---
+        const scenarios = {
+            easy: [
+                { icon: '📧', title: '수상한 이메일', description: '"[긴급] 비밀번호가 만료되었습니다" 라는 제목의 이메일을 받았습니다. 링크를 클릭하여 비밀번호를 변경하라고 합니다.', choices: [{ text: '링크를 클릭해서 비밀번호를 바꾼다.', correct: false, points: -20 }, { text: '이메일을 삭제하고, 즐겨찾기 해둔 공식 사이트로 직접 접속하여 확인한다.', correct: true, points: 15 }], explanation: '전형적인 피싱(Phishing) 이메일입니다. 출처가 불분명한 링크는 절대 클릭해서는 안 됩니다.', hint: '이메일 속 링크를 함부로 믿지 마세요.' },
+                { icon: '📦', title: '수상한 택배 문자', description: '"[국제택배] 고객님 배송불가 주소불명. 주소지 변경요망" 이라는 내용과 함께 단축 URL이 포함된 문자를 받았습니다.', choices: [{ text: '택배를 기다리고 있었으므로, URL을 클릭하여 주소를 수정한다.', correct: false, points: -25 }, { text: 'URL을 클릭하지 않고, 공식 택배사 앱이나 웹사이트를 통해 직접 배송 상태를 확인한다.', correct: true, points: 15 }], explanation: '문자 메시지(SMS)와 피싱(Phishing)의 합성어인 스미싱(Smishing) 공격입니다. URL을 클릭하면 악성 앱이 설치될 수 있습니다.', hint: '문자 메시지로 온 불분명한 URL은 절대 클릭하지 마세요.' },
+                { icon: '🔑', title: '안전한 비밀번호 만들기', description: '새로운 웹사이트에 가입하려고 합니다. 어떤 비밀번호가 가장 안전할까요?', choices: [{ text: '`password123` 또는 내 생일', correct: false, points: -20 }, { text: '영문 대/소문자, 숫자, 특수문자를 조합한 12자리 이상의 비밀번호', correct: true, points: 15 }], explanation: '추측하기 어렵고 길며, 여러 종류의 문자를 조합한 비밀번호가 안전합니다. 여러 사이트에서 같은 비밀번호를 쓰는 것도 피해야 합니다.', hint: '복잡하고 길수록 좋습니다.' },
+                { icon: '📷', title: 'SNS 사진 업로드', description: '해외 여행지에서 찍은 비행기표 사진을 SNS에 올리려고 합니다. 탑승객 이름, 항공편, 바코드가 모두 나와 있습니다.', choices: [{ text: '여행의 설렘을 공유하기 위해 원본 사진을 그대로 올린다.', correct: false, points: -15 }, { text: '바코드와 개인정보를 가리거나, 해당 사진은 올리지 않는다.', correct: true, points: 10 }], explanation: '비행기표 바코드에는 민감한 정보가 포함되어 있어, 악의적인 사용자가 예약을 변경하거나 취소할 수 있습니다.', hint: '사진 속 바코드에도 중요한 정보가 숨어있을 수 있습니다.' },
+                { icon: '🌐', title: '공용 Wi-Fi 사용', description: '카페의 무료 공용 Wi-Fi에 접속하여 은행 업무를 보려고 합니다.', choices: [{ text: '괜찮겠지. 그냥 접속해서 은행 업무를 본다.', correct: false, points: -20 }, { text: '보안이 취약할 수 있으므로, 스마트폰 핫스팟을 이용하거나 나중에 안전한 곳에서 처리한다.', correct: true, points: 15 }], explanation: '암호화되지 않은 공용 Wi-Fi는 통신 내용을 엿들을 수 있는 중간자 공격에 취약합니다. 민감한 정보는 다루지 않는 것이 좋습니다.', hint: '세상에 공짜는 없습니다. 공짜 Wi-Fi는 특히 조심하세요.' }
+            ],
+            hard: [
+                { icon: '📧', title: '의심스러운 이메일 수신', description: 'CFO에게서 "긴급: 3분기 재무 보고서 검토 요청"이라는 제목의 이메일이 왔습니다. 보낸 사람의 주소는 `cfo@go0oglecorp.com` 입니다. 어떻게 하시겠습니까?', choices: [{ text: '중요한 업무이므로 즉시 첨부파일을 다운로드한다.', correct: false, points: -30 }, { text: '발신자 주소가 미세하게 다른 점을 인지하고, IT 부서에 신고 후 이메일을 삭제한다.', correct: true, points: 20 }], explanation: '스피어 피싱(Spear Phishing) 공격입니다. 특정 대상을 정밀하게 노리며, 발신자 주소를 교묘하게 위조하는 것이 특징입니다.', hint: '보낸 사람의 이메일 주소를 자세히 살펴보세요. 정상적인 주소와 다른 점이 없나요?' },
+                { icon: '💻', title: '의문의 시스템 업데이트 알림', description: '시스템 관리자로부터 "필수 보안 업데이트"라며 특정 PowerShell 스크립트를 실행하라는 팝업 메시지가 떴습니다. 파일 흔적을 남기지 않는 방식이라고 합니다.', choices: [{ text: '정상적인 시스템 도구를 악용한 파일리스(Fileless) 맬웨어일 수 있으므로, 실행을 거부하고 관리자에게 직접 확인한다.', correct: true, points: 20 }, { text: '관리자의 지시이므로, 의심 없이 스크립트를 즉시 실행한다.', correct: false, points: -40 }], explanation: '파일리스 맬웨어는 실행 파일을 생성하지 않고 메모리에서만 동작하여 백신 탐지를 우회하는 고도의 공격입니다.', hint: '파일이 없다고 해서 안전한 것은 아닙니다. 정상적인 시스템 명령어도 악용될 수 있습니다.' },
+                { icon: '🔥', title: '랜섬웨어 감염!', description: 'PC 화면에 "모든 파일이 암호화되었다. 24시간 내에 비트코인을 지불하지 않으면 모든 데이터를 인터넷에 공개하겠다."는 메시지가 나타났습니다.', choices: [{ text: '데이터 유출이 더 큰 문제이므로, 즉시 해커에게 돈을 지불한다.', correct: false, points: -30 }, { text: '즉시 PC의 네트워크를 차단하고, "3-2-1 백업 원칙"에 따라 보관된 오프사이트 백업으로 복구를 시작한다.', correct: true, points: 30 }], explanation: '데이터 유출 협박까지 하는 이중 갈취(Double Extortion) 랜섬웨어입니다. 돈을 지불해도 데이터를 돌려받는다는 보장이 없습니다.', hint: '해커와의 협상은 최후의 수단입니다. 사전에 대비하는 것이 가장 중요합니다.' },
+                { icon: '🔑', title: 'DB 비밀번호 저장 방식', description: '신규 서비스의 사용자 비밀번호를 데이터베이스에 저장해야 합니다. 레인보우 테이블 공격을 방지하기 위해 어떤 추가 조치를 해야 할까요?', choices: [{ text: '사용자별로 임의의 문자열(Salt)을 추가하여 해시 값을 계산하는 솔팅(Salting)을 적용한다.', correct: true, points: 25 }, { text: '단순히 강력한 해시 함수(SHA-256 등)만 적용하면 충분하다.', correct: false, points: -25 }], explanation: '솔팅(Salting)은 동일한 비밀번호라도 사용자마다 다른 해시 값을 갖게 만들어, 레인보우 테이블을 무력화하는 필수적인 보안 조치입니다.', hint: '요리에 소금(Salt)을 쳐서 맛을 다르게 만드는 것을 생각해보세요.' },
+                { icon: '📞', title: '다급한 전화 한 통', description: '"검찰청입니다. 회사 계좌가 범죄에 연루되었으니, 안전 조치를 위해 우리가 알려주는 안전 계좌로 자산을 즉시 이체하십시오." 라는 전화를 받았습니다.', choices: [{ text: '전화를 끊고, 공식 검찰청 대표 번호로 직접 전화하여 사실 여부를 확인한다.', correct: true, points: 20 }, { text: '상황이 심각하므로, 지시에 따라 즉시 자산을 이체한다.', correct: false, points: -50 }], explanation: '전형적인 보이스 피싱(Vishing) 수법입니다. 공공기관은 절대 전화를 통해 자산 이체나 개인정보를 요구하지 않습니다.', hint: '공공기관이 전화를 통해 돈이나 민감한 정보를 요구하는 경우는 없습니다.' }
+            ],
+            expert: [
+                { icon: '📡', title: '지능형 지속 위협(APT)', description: "로그 분석 중, 특정 관리자 계정이 몇 주에 걸쳐 심야 시간에 아주 적은 양의 데이터를 꾸준히 외부 C&C 서버로 전송하는 것을 발견했습니다. 이는 일반적인 맬웨어와는 다른 패턴입니다. 이 상황은 무엇일 가능성이 높으며, 어떻게 대응해야 할까요?", choices: [{ text: "지능형 지속 위협(APT) 공격의 '낮고 느린(Low and Slow)' 데이터 유출 단계일 수 있다. 즉시 해당 계정을 격리하고, 침해 범위를 파악하기 위한 심층 포렌식 분석을 시작한다.", correct: true, points: 35 }, { text: "일시적인 네트워크 오류나 백그라운드 프로세스일 가능성이 높으니, 모니터링만 계속한다.", correct: false, points: -45 }], explanation: "지능형 지속 위협(APT)은 장기간에 걸쳐 특정 목표를 대상으로 은밀하게 공격을 수행합니다. '낮고 느린' 방식의 데이터 유출은 APT의 대표적인 특징으로, 즉각적인 격리 및 조사가 필수입니다.", hint: "공격이 단발성으로 끝나지 않고, 오랫동안 들키지 않으려는 의도가 보입니다." },
+                { icon: '⛓️', title: '공급망 공격', description: "최근 업데이트한 상용 모니터링 솔루션에서 알 수 없는 외부 IP로의 통신이 감지되었습니다. 해당 솔루션 공급업체는 정상적인 기능이라고 주장하지만, 우리 회사의 보안 정책과는 맞지 않습니다.", choices: [{ text: "공급망 공격(Supply Chain Attack)의 가능성을 의심한다. 즉시 해당 솔루션의 네트워크를 격리하고, 샌드박스 환경에서 트래픽을 정밀 분석하며, 공급업체에 공식적인 보안 검증 자료를 요구한다.", correct: true, points: 30 }, { text: "신뢰하는 공급업체의 공식 업데이트이므로, 해당 통신을 예외 처리하고 계속 사용한다.", correct: false, points: -40 }], explanation: "공급망 공격은 신뢰할 수 있는 소프트웨어 개발/배포 과정에 악성코드를 삽입하는 방식입니다. '제로 트러스트' 원칙에 따라 모든 것을 검증해야 합니다.", hint: "신뢰하는 파트너를 통해서도 위협은 들어올 수 있습니다." },
+                { icon: '💣', title: '제로데이 공격 대비', description: "우리가 사용하는 웹 프레임워크에서 아직 공식 패치가 발표되지 않은 원격 코드 실행(RCE) 취약점이 암시장에서 거래되고 있다는 첩보를 입수했습니다. 아직 공격 징후는 없습니다.", choices: [{ text: "제로데이 공격에 대비해, 웹 애플리케이션 방화벽(WAF)에 해당 취약점의 공격 패턴을 차단하는 가상 패치(Virtual Patching) 규칙을 긴급 적용하고, 시스템 로깅을 강화하여 모든 접근을 감시한다.", correct: true, points: 30 }, { text: "아직 공격이 없으니, 공식 패치가 나올 때까지 기다린다.", correct: false, points: -50 }], explanation: "제로데이 공격은 패치가 존재하지 않는 취약점을 이용하므로, WAF 등을 이용한 가상 패치로 선제적인 방어선을 구축하는 것이 매우 중요합니다.", hint: "공식적인 방패가 없다면, 임시로나마 막을 수 있는 가상의 방패를 만들어야 합니다." },
+                { icon: '⚡', title: '부채널 공격', description: "서버실의 암호화 가속기 카드가 동작할 때의 미세한 전력 소비 패턴을 분석하여 암호키를 탈취하려는 시도가 의심됩니다. 어떻게 방어해야 할까요?", choices: [{ text: "전형적인 부채널 공격(Side-Channel Attack)이다. 알고리즘 연산 시간에 무작위 지연을 추가하거나, 전력 패턴을 균일하게 만드는 대응 기술(Masking 등)이 적용된 하드웨어를 사용하거나, 펌웨어 업데이트를 확인한다.", correct: true, points: 25 }, { text: "물리적인 접근이 필요한 공격이므로, 서버실의 CCTV를 강화하고 출입 통제를 엄격히 한다.", correct: false, points: -35 }], explanation: "부채널 공격은 알고리즘의 논리적 약점이 아닌, 물리적 구현 과정에서 나오는 정보를 이용합니다. 따라서 물리적 보안 강화만으로는 부족하며, 하드웨어/소프트웨어 수준의 대응이 필요합니다.", hint: "공격자는 알고리즘의 논리가 아닌, 물리적 구현의 약점을 노리고 있습니다." },
+                { icon: '🧠', title: '메모리 포렌식', description: "파일리스 맬웨어에 감염된 것으로 의심되는 서버가 있습니다. 재부팅하면 메모리에 있던 증거가 모두 사라질 위험이 있습니다. 가장 먼저 해야 할 조치는?", choices: [{ text: "시스템을 재부팅하거나 끄지 않고, Volatility와 같은 도구를 사용하여 실행 중인 시스템의 메모리 전체를 덤프(Live Memory Acquisition)하여 증거를 확보한다.", correct: true, points: 30 }, { text: "즉시 서버를 재부팅하여 악성 프로세스를 종료시킨다.", correct: false, points: -40 }], explanation: "메모리는 휘발성이므로, 재부팅 시 악성코드의 흔적이 사라집니다. 파일리스 맬웨어 조사 시에는 시스템 전원을 유지한 채 메모리를 덤프하여 분석하는 라이브 포렌식이 필수입니다.", hint: "범죄 현장을 보존하는 것이 수사의 첫걸음입니다. 디지털 세계에서도 마찬가지입니다." }
+            ]
+        };
+        
+        // --- 게임 변수 ---
+        let currentScenarios = [];
+        let currentScenarioIndex = 0;
+        let score = 100;
+        let timerInterval;
+        let currentDifficulty = '';
+        const TIME_LIMIT = 15;
+        const NUM_SCENARIOS_PER_GAME = 5;
+
+        // --- 사운드 효과 ---
+        let synth;
+        function setupSounds() {
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+            }
         }
-        
-        // --- DOM ELEMENTS ---
-        const userModal = document.getElementById('user-modal');
-        const userForm = document.getElementById('user-form');
-        const mainContent = document.getElementById('main-content');
-        const welcomeMessage = document.getElementById('welcome-message');
-        const quizContainer = document.getElementById('quiz-container');
-        const questionContainer = document.getElementById('question-container');
-        const questionElement = document.getElementById('question-element');
-        const questionNumberEl = document.getElementById('question-number');
-        const answerButtons = document.getElementById('answer-buttons');
-        const nextBtn = document.getElementById('next-btn');
-        const scoreEl = document.getElementById('score');
-        const rankingBody = document.getElementById('ranking-body');
+        const playSound = (note) => { if (synth) synth.triggerAttackRelease(note, "8n"); };
+        const playCorrectSound = () => playSound("C5");
+        const playIncorrectSound = () => playSound("G3");
+        const playClickSound = () => playSound("C4");
 
-        // --- QUIZ QUESTIONS ---
-        const questions = [
-            {
-                question: "다른 사람의 개인정보를 무단으로 이용하는 행위를 무엇이라고 할까요?",
-                answers: [
-                    { text: "해킹", correct: false },
-                    { text: "개인정보 침해", correct: true },
-                    { text: "피싱", correct: false },
-                    { text: "스미싱", correct: false }
-                ]
-            },
-            {
-                question: "웹사이트 비밀번호 설정 시 가장 안전한 방법은 무엇일까요?",
-                answers: [
-                    { text: "생일이나 전화번호 사용", correct: false },
-                    { text: "모든 사이트에 동일한 비밀번호 사용", correct: false },
-                    { text: "영문, 숫자, 특수문자를 조합하여 8자리 이상으로 설정", correct: true },
-                    { text: "자주 사용하는 단어 사용", correct: false }
-                ]
-            },
-            {
-                question: "출처가 불분명한 이메일에 포함된 첨부파일이나 링크를 클릭했을 때 발생할 수 있는 가장 큰 위협은?",
-                answers: [
-                    { text: "컴퓨터 속도 저하", correct: false },
-                    { text: "악성코드 감염", correct: true },
-                    { text: "인터넷 연결 끊김", correct: false },
-                    { text: "모니터 화면 밝기 변경", correct: false }
-                ]
-            },
-            {
-                question: "금융기관을 사칭하여 개인의 금융정보를 빼내는 사기 수법을 무엇이라고 할까요?",
-                answers: [
-                    { text: "파밍", correct: false },
-                    { text: "스니핑", correct: false },
-                    { text: "피싱(Phishing)", correct: true },
-                    { text: "스푸핑", correct: false }
-                ]
-            },
-            {
-                question: "공공장소에서 무료 와이파이(Wi-Fi) 사용 시 주의해야 할 점으로 올바르지 않은 것은?",
-                answers: [
-                    { text: "보안 설정이 없는 와이파이는 사용을 자제한다.", correct: false },
-                    { text: "중요한 개인정보나 금융 거래는 하지 않는다.", correct: false },
-                    { text: "무료이므로 마음껏 모든 사이트에 접속해도 안전하다.", correct: true },
-                    { text: "VPN(가상사설망)을 이용하여 통신을 암호화한다.", correct: false }
-                ]
+        // --- 게임 로직 ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
-        ];
+        }
 
-        // --- GAME STATE ---
-        let currentUser = { grade: '', classNum: '', studentNum: '', name: '' };
-        let currentQuestionIndex = 0;
-        let score = 0;
-        
-        // --- AUTHENTICATION ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                console.log("Authenticated user:", user.uid);
-            } else {
-                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                }
-            }
-        });
+        function showDifficultyScreen() {
+            playClickSound();
+            startScreen.classList.add('hidden');
+            difficultyScreen.classList.remove('hidden');
+        }
 
-        // --- RANKING LOGIC ---
-        const rankingsCol = collection(db, `artifacts/${appId}/public/data/rankings`);
-        const q = query(rankingsCol, orderBy("score", "desc"), limit(20));
+        function initializeGame(difficulty) {
+            playClickSound();
+            setupSounds();
+            
+            currentDifficulty = difficulty;
+            const allScenariosForDifficulty = scenarios[difficulty];
+            shuffleArray(allScenariosForDifficulty);
+            currentScenarios = allScenariosForDifficulty.slice(0, NUM_SCENARIOS_PER_GAME);
+            
+            currentScenarioIndex = 0;
+            score = 100;
+            updateScore();
+            
+            difficultyScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            leaderboardFormContainer.classList.add('hidden');
+            leaderboardForm.reset();
 
-        onSnapshot(q, (snapshot) => {
-            rankingBody.innerHTML = '';
-            if (snapshot.empty) {
-                rankingBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">아직 랭킹이 없습니다.</td></tr>';
+            loadScenario();
+        }
+
+        function loadScenario() {
+            if (currentScenarioIndex >= currentScenarios.length) {
+                endGame();
                 return;
             }
-            snapshot.docs.forEach((doc, index) => {
-                const data = doc.data();
-                const rank = index + 1;
-                const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-                const info = `${data.grade}학년 ${data.classNum}반 ${data.studentNum}번`;
-                
-                const row = document.createElement('tr');
-                row.className = 'bg-gray-800 border-b border-gray-700 hover:bg-gray-600';
-                row.innerHTML = `
-                    <td class="px-4 py-3 font-medium">${rankEmoji} ${rank}</td>
-                    <td class="px-4 py-3">${info}</td>
-                    <td class="px-4 py-3 font-semibold">${data.name}</td>
-                    <td class="px-4 py-3 text-right font-bold text-yellow-300">${data.score}</td>
-                `;
-                rankingBody.appendChild(row);
+            // ... (나머지 로직은 이전과 유사)
+            const scenario = currentScenarios[currentScenarioIndex];
+            scenarioIcon.textContent = scenario.icon;
+            scenarioTitle.textContent = scenario.title;
+            scenarioDescription.textContent = scenario.description;
+            
+            hintContainer.innerHTML = '';
+            hintButton.disabled = false;
+            hintButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            choicesContainer.innerHTML = '';
+            scenario.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.textContent = choice.text;
+                button.classList.add('w-full', 'p-4', 'rounded-lg', 'text-left', 'font-semibold', 'btn', 'bg-gray-700', 'hover:bg-gray-600');
+                button.onclick = () => selectChoice(choice);
+                choicesContainer.appendChild(button);
             });
-        }, (error) => {
-            console.error("Error fetching rankings:", error);
-            rankingBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">랭킹 로딩 실패</td></tr>';
-        });
-
-        // --- GAME LOGIC ---
-        userForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            currentUser.grade = document.getElementById('grade').value;
-            currentUser.classNum = document.getElementById('classNum').value;
-            currentUser.studentNum = document.getElementById('studentNum').value;
-            currentUser.name = document.getElementById('name').value.trim();
-
-            if (currentUser.name) {
-                userModal.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-                welcomeMessage.textContent = `${currentUser.grade}학년 ${currentUser.classNum}반 ${currentUser.name}님, 도전을 시작합니다!`;
-                startQuiz();
-            }
-        });
-
-        function startQuiz() {
-            currentQuestionIndex = 0;
-            score = 0;
-            scoreEl.innerText = score;
-            nextBtn.classList.add('hidden');
-            displayQuestion();
+            
+            startTimer();
         }
+        
+        function startTimer() {
+            let timeLeft = TIME_LIMIT;
+            timerBar.style.transition = 'none';
+            timerBar.style.width = '100%';
+            
+            setTimeout(() => {
+                timerBar.style.transition = `width ${TIME_LIMIT}s linear`;
+                timerBar.style.width = '0%';
+            }, 50);
 
-        function displayQuestion() {
-            resetState();
-            let currentQuestion = questions[currentQuestionIndex];
-            let questionNo = currentQuestionIndex + 1;
-            questionNumberEl.innerText = `문제 ${questionNo}`;
-            questionElement.innerText = currentQuestion.question;
-
-            currentQuestion.answers.forEach(answer => {
-                const button = document.createElement("button");
-                button.innerHTML = answer.text;
-                button.classList.add("answer-btn", "w-full", "text-left", "p-4", "rounded-lg", "border-2", "border-gray-500", "hover:bg-gray-700", "transition", "duration-200");
-                answerButtons.appendChild(button);
-                if (answer.correct) {
-                    button.dataset.correct = answer.correct;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeOut();
                 }
-                button.addEventListener("click", selectAnswer);
-            });
+            }, 1000);
+        }
+        
+        function timeOut() {
+            playIncorrectSound();
+            score -= 20; // 시간 초과 시 감점
+            updateScore();
+            showFeedback(false, '시간 초과!', '신속한 결정도 보안 담당자의 중요한 역량입니다. 위협 상황에서는 빠른 판단이 필요합니다.');
         }
 
-        function resetState() {
-            nextBtn.classList.add('hidden');
-            while (answerButtons.firstChild) {
-                answerButtons.removeChild(answerButtons.firstChild);
-            }
+        function selectChoice(choice) {
+            clearInterval(timerInterval);
+            if (choice.correct) { playCorrectSound(); } else { playIncorrectSound(); }
+            score += choice.points;
+            updateScore();
+            showFeedback(choice.correct, choice.correct ? '정답입니다!' : '위험합니다!', currentScenarios[currentScenarioIndex].explanation);
         }
 
-        function selectAnswer(e) {
-            const selectedBtn = e.target;
-            const isCorrect = selectedBtn.dataset.correct === "true";
-            if (isCorrect) {
-                selectedBtn.classList.add("correct");
-                score += 10;
-                scoreEl.innerText = score;
+        function updateScore() {
+            if (score > 100) score = 100;
+            if (score < 0) score = 0;
+            scoreDisplay.textContent = `${score}점`;
+            securityBar.style.width = `${score}%`;
+            
+            securityBar.classList.remove('from-red-500', 'to-yellow-500', 'from-yellow-500', 'to-green-500', 'from-green-400', 'to-cyan-500');
+            if (score < 30) { securityBar.classList.add('from-red-500', 'to-yellow-500'); } 
+            else if (score < 70) { securityBar.classList.add('from-yellow-500', 'to-green-500'); } 
+            else { securityBar.classList.add('from-green-400', 'to-cyan-500'); }
+        }
+
+        function showFeedback(isCorrect, title, explanation) {
+            feedbackTitle.textContent = title;
+            feedbackExplanation.innerHTML = explanation;
+            
+            feedbackContent.classList.remove('bg-green-800', 'bg-red-800', 'bg-gray-800');
+            nextButton.classList.remove('bg-green-600', 'hover:bg-green-700', 'bg-red-600', 'hover:bg-red-700', 'bg-gray-600', 'hover:bg-gray-700');
+
+            if (title === '시간 초과!') {
+                feedbackContent.classList.add('bg-gray-800');
+                nextButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            } else if (isCorrect) {
+                feedbackContent.classList.add('bg-green-800');
+                nextButton.classList.add('bg-green-600', 'hover:bg-green-700');
             } else {
-                selectedBtn.classList.add("incorrect");
+                feedbackContent.classList.add('bg-red-800');
+                nextButton.classList.add('bg-red-600', 'hover:bg-red-700');
             }
-            Array.from(answerButtons.children).forEach(button => {
-                if (button.dataset.correct === "true") {
-                    if(!button.classList.contains('correct')) button.classList.add("correct");
-                }
-                button.disabled = true;
-            });
-            nextBtn.classList.remove('hidden');
+            feedbackModal.classList.remove('hidden');
         }
 
-        async function showResults() {
-            resetState();
-            questionElement.innerHTML = `챌린지 종료! <br>총 <span class="text-yellow-400 font-bold">${questions.length}</span>문제 중 <span class="text-green-400 font-bold">${score / 10}</span>문제를 맞혔습니다. <br>최종 점수는 <span class="text-indigo-400 font-bold">${score}</span>점 입니다.`;
-            questionNumberEl.innerText = "결과";
-            nextBtn.innerHTML = "다시 시작";
-            nextBtn.classList.remove('hidden');
+        function endGame() {
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+            
+            document.getElementById('final-score').textContent = score;
+            const endTitle = document.getElementById('end-title');
+            const endMessage = document.getElementById('end-message');
 
-            questionElement.innerHTML += `<br><br>랭킹에 점수를 등록하고 있습니다...`;
-            try {
-                await addDoc(rankingsCol, {
-                    ...currentUser,
-                    score: score,
-                    createdAt: serverTimestamp()
+            endTitle.className = 'text-5xl font-bold mb-4'; // Reset classes
+            if (score >= 90) {
+                endTitle.textContent = '🏆 전설의 보안 전문가';
+                endMessage.textContent = '완벽한 판단력입니다! 당신이 있는 한 우리 회사는 철벽 방어!';
+                endTitle.classList.add('text-yellow-400');
+            } else if (score >= 60) {
+                endTitle.textContent = '👍 신뢰받는 보안 에이스';
+                endMessage.textContent = '훌륭합니다! 대부분의 위협을 성공적으로 막아냈습니다.';
+                endTitle.classList.add('text-cyan-400');
+            } else if (score >= 30) {
+                endTitle.textContent = '😅 성장하는 신입사원';
+                endMessage.textContent = '조금 아쉽네요. 몇 번의 실수가 있었지만 가능성은 충분합니다!';
+                endTitle.classList.add('text-green-400');
+            } else {
+                endTitle.textContent = '😱 해고 위기';
+                endMessage.textContent = '이런... 회사에 큰 위기를 초래했습니다. 보안 교육이 시급합니다!';
+                endTitle.classList.add('text-red-500');
+            }
+            
+            const leaderboard = getLeaderboard();
+            if (leaderboard.length < 5 || score > (leaderboard[leaderboard.length - 1]?.score || 0)) {
+                leaderboardFormContainer.classList.remove('hidden');
+            }
+        }
+
+        // --- 힌트 로직 ---
+        hintButton.addEventListener('click', () => {
+            playClickSound();
+            score -= 5;
+            updateScore();
+            const hintText = currentScenarios[currentScenarioIndex].hint;
+            hintContainer.innerHTML = `<div class="bg-black bg-opacity-20 p-3 rounded-lg text-yellow-300 hint-box">💡 힌트: ${hintText}</div>`;
+            hintButton.disabled = true;
+            hintButton.classList.add('opacity-50', 'cursor-not-allowed');
+        });
+
+        // --- 리더보드 로직 ---
+        const LEADERBOARD_KEY = 'securityChallengeLeaderboard_v3';
+        const difficultyMap = {
+            easy: '신입',
+            hard: '전문가',
+            expert: '해커'
+        };
+
+        function getLeaderboard() {
+            return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+        }
+        function saveLeaderboard(leaderboard) {
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
+        }
+        function addScoreToLeaderboard(name, score, difficulty) {
+            const leaderboard = getLeaderboard();
+            leaderboard.push({ name, score, difficulty });
+            leaderboard.sort((a, b) => b.score - a.score);
+            const newLeaderboard = leaderboard.slice(0, 5);
+            saveLeaderboard(newLeaderboard);
+        }
+        function displayLeaderboard() {
+            const leaderboard = getLeaderboard();
+            leaderboardList.innerHTML = '';
+            if (leaderboard.length === 0) {
+                leaderboardList.innerHTML = '<li class="text-gray-400">아직 등록된 점수가 없습니다.</li>';
+            } else {
+                leaderboard.forEach((entry, index) => {
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'rounded-md');
+                    const difficultyBadge = `<span class="text-xs font-bold px-2 py-1 rounded-full ${
+                        entry.difficulty === 'easy' ? 'bg-green-500 text-white' : 
+                        entry.difficulty === 'hard' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
+                    }">${difficultyMap[entry.difficulty]}</span>`;
+                    li.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-lg">${index + 1}. ${entry.name}</span>
+                            ${difficultyBadge}
+                        </div>
+                        <span class="text-cyan-400 font-bold text-lg">${entry.score}점</span>
+                    `;
+                    if (index === 0) li.classList.add('bg-yellow-500', 'bg-opacity-20');
+                    if (index === 1) li.classList.add('bg-gray-500', 'bg-opacity-20');
+                    if (index === 2) li.classList.add('bg-orange-700', 'bg-opacity-20');
+                    leaderboardList.appendChild(li);
                 });
-                questionElement.innerHTML = questionElement.innerHTML.replace("랭킹에 점수를 등록하고 있습니다...", "<span class='text-green-400'>랭킹 등록 완료!</span>");
-            } catch (error) {
-                console.error("Error adding document: ", error);
-                questionElement.innerHTML = questionElement.innerHTML.replace("랭킹에 점수를 등록하고 있습니다...", "<span class='text-red-500'>랭킹 등록에 실패했습니다.</span>");
             }
+            leaderboardModal.classList.remove('hidden');
         }
-
-        function handleNextButton() {
-            currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                displayQuestion();
-            } else {
-                showResults();
+        
+        leaderboardForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            playClickSound();
+            const playerName = playerNameInput.value;
+            if (playerName) {
+                addScoreToLeaderboard(playerName, score, currentDifficulty);
+                leaderboardFormContainer.classList.add('hidden');
+                displayLeaderboard();
             }
-        }
-
-        nextBtn.addEventListener("click", () => {
-            if (currentQuestionIndex < questions.length) {
-                handleNextButton();
-            } else {
-                // Restart logic: simply reload the page to force re-entry of info
-                window.location.reload();
+        });
+        
+        // --- 이벤트 리스너 ---
+        startButton.addEventListener('click', showDifficultyScreen);
+        difficultyScreen.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (button && button.dataset.difficulty) {
+                initializeGame(button.dataset.difficulty);
             }
+        });
+        restartButton.addEventListener('click', () => {
+            playClickSound();
+            endScreen.classList.add('hidden');
+            difficultyScreen.classList.remove('hidden');
+        });
+        nextButton.addEventListener('click', () => {
+            playClickSound();
+            currentScenarioIndex++;
+            feedbackModal.classList.add('hidden');
+            loadScenario();
+        });
+        showLeaderboardButton.addEventListener('click', () => {
+            playClickSound();
+            displayLeaderboard();
+        });
+        closeLeaderboardButton.addEventListener('click', () => {
+            playClickSound();
+            leaderboardModal.classList.add('hidden');
         });
 
     </script>
