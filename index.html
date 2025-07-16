@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>정보보안 전문가 챌린지 v3.8 (Admin)</title>
+    <title>정보보안 전문가 챌린지 v3.9 (Enhanced)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden; /* 스크롤바 제거 */
         }
         .card {
             backdrop-filter: blur(10px);
@@ -47,12 +48,50 @@
         }
         /* 관리자 모드 정답 하이라이트 */
         .admin-correct-answer {
-            box-shadow: 0 0 20px 5px rgba(22, 255, 201, 0.7);
-            border: 2px solid #16ffc9;
+            box-shadow: 0 0 20px 5px rgba(22, 255, 201, 0.7) !important;
+            border: 2px solid #16ffc9 !important;
+            background-color: rgba(22, 255, 201, 0.2) !important;
+        }
+        /* 화면 플래시 효과 */
+        #flash-overlay {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .flash-red {
+            background-color: rgba(255, 82, 82, 0.3);
+            animation: flash-effect 0.4s ease-out;
+        }
+        .flash-green {
+            background-color: rgba(76, 175, 80, 0.3);
+            animation: flash-effect 0.4s ease-out;
+        }
+        @keyframes flash-effect {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        /* 터치 리플 효과 */
+        .touch-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            width: 20px;
+            height: 20px;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center min-h-screen p-4">
+
+    <!-- 화면 효과용 오버레이 -->
+    <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-40"></div>
 
     <!-- 전체 화면 토글 버튼 -->
     <button id="fullscreen-button" class="fixed top-4 right-4 text-gray-400 hover:text-white z-50 btn">
@@ -233,12 +272,11 @@
         const playerNameInput = document.getElementById('player-name');
         const endScreenLeaderboardButton = document.getElementById('end-screen-leaderboard-button');
 
-        // 전체화면 요소
+        const flashOverlay = document.getElementById('flash-overlay');
         const fullscreenButton = document.getElementById('fullscreen-button');
         const fullscreenEnterIcon = document.getElementById('fullscreen-enter-icon');
         const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
 
-        // 관리자 모드 요소
         const adminPanel = document.getElementById('admin-panel');
         const adminGameControls = document.getElementById('admin-game-controls');
         const showAnswerButton = document.getElementById('show-answer-button');
@@ -304,14 +342,36 @@
                 Tone.start();
             }
             if (!synth) {
-                synth = new Tone.Synth().toDestination();
+                synth = new Tone.FMSynth({
+                    modulationIndex: 12.22,
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.1 },
+                    harmonicity: 3.01
+                }).toDestination();
             }
         }
-        const playSound = (note) => { if (synth) synth.triggerAttackRelease(note, "8n"); };
-        const playCorrectSound = () => playSound("C5");
-        const playIncorrectSound = () => playSound("G3");
-        const playClickSound = () => playSound("C4");
+        const playSound = (note, duration = "8n") => { if (synth) synth.triggerAttackRelease(note, duration); };
+        const playCorrectSound = () => playSound("C5", "16n");
+        const playIncorrectSound = () => { if (synth) synth.triggerAttackRelease("A3", "4n"); };
+        const playClickSound = () => { if (synth) synth.triggerAttackRelease("C4", "32n"); };
         const playAdminSound = () => { if(synth) synth.triggerAttackRelease("E6", "8n"); };
+        const playStartGameSound = () => {
+            if (!synth) return;
+            const now = Tone.now();
+            synth.triggerAttackRelease("C4", "8n", now);
+            synth.triggerAttackRelease("E4", "8n", now + 0.1);
+            synth.triggerAttackRelease("G4", "8n", now + 0.2);
+            synth.triggerAttackRelease("C5", "8n", now + 0.3);
+        };
+        const playEndGameSound = () => {
+             if (!synth) return;
+            const now = Tone.now();
+            synth.triggerAttackRelease("C5", "8n", now);
+            synth.triggerAttackRelease("G4", "8n", now + 0.1);
+            synth.triggerAttackRelease("E4", "8n", now + 0.2);
+            synth.triggerAttackRelease("C4", "4n", now + 0.3);
+        };
+        const playFeedbackSound = () => playSound("G5", "16n");
+
 
         // --- 게임 로직 ---
         function shuffleArray(array) {
@@ -329,7 +389,7 @@
         }
 
         function initializeGame(difficulty) {
-            playClickSound();
+            playStartGameSound();
             setupSounds();
             
             currentDifficulty = difficulty;
@@ -357,7 +417,6 @@
                 return;
             }
             
-            // 이전 문제의 정답 하이라이트 제거
             if (correctChoiceButton) {
                 correctChoiceButton.classList.remove('admin-correct-answer');
                 correctChoiceButton = null;
@@ -386,7 +445,7 @@
                 choicesContainer.appendChild(button);
                 
                 if (choice.correct) {
-                    correctChoiceButton = button; // 정답 버튼 참조 저장
+                    correctChoiceButton = button;
                 }
             });
             
@@ -414,8 +473,19 @@
             }, 1000);
         }
         
+        function triggerFlashEffect(isCorrect) {
+            flashOverlay.className = 'fixed inset-0 pointer-events-none z-40'; // Reset
+            void flashOverlay.offsetWidth; // Trigger reflow
+            if (isCorrect) {
+                flashOverlay.classList.add('flash-green');
+            } else {
+                flashOverlay.classList.add('flash-red');
+            }
+        }
+
         function timeOut() {
             playIncorrectSound();
+            triggerFlashEffect(false);
             score -= 10;
             updateScore();
             showFeedback(false, '시간 초과!', '신속한 결정도 보안 담당자의 중요한 역량입니다. 위협 상황에서는 빠른 판단이 필요합니다.');
@@ -423,18 +493,23 @@
 
         function selectChoice(choice) {
             clearInterval(timerInterval);
+            triggerFlashEffect(choice.correct);
+            
             if (choice.correct) { 
                 playCorrectSound(); 
             } else { 
                 playIncorrectSound();
             }
-            // 관리자 모드에서 정답 보기 하이라이트 제거
             if (correctChoiceButton && correctChoiceButton.classList.contains('admin-correct-answer')) {
                  correctChoiceButton.classList.remove('admin-correct-answer');
             }
             score += choice.points;
             updateScore();
-            showFeedback(choice.correct, choice.correct ? '정답입니다!' : '위험합니다!', currentScenarios[currentScenarioIndex].explanation);
+            
+            // Tone.js의 사운드 동시 재생 오류를 막기 위해 피드백 표시를 약간 지연시킵니다.
+            setTimeout(() => {
+                showFeedback(choice.correct, choice.correct ? '정답입니다!' : '위험합니다!', currentScenarios[currentScenarioIndex].explanation);
+            }, 150);
         }
 
         function updateScore() {
@@ -450,6 +525,7 @@
         }
 
         function showFeedback(isCorrect, title, explanation) {
+            playFeedbackSound();
             feedbackTitle.textContent = title;
             feedbackExplanation.innerHTML = explanation;
             
@@ -470,6 +546,7 @@
         }
 
         function endGame() {
+            playEndGameSound();
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
             adminGameControls.classList.add('hidden');
@@ -642,6 +719,20 @@
             });
         }
 
+        // --- 터치 효과 로직 ---
+        document.addEventListener('click', function(e) {
+            const ripple = document.createElement('div');
+            ripple.className = 'touch-ripple';
+            document.body.appendChild(ripple);
+
+            ripple.style.left = `${e.clientX - 10}px`;
+            ripple.style.top = `${e.clientY - 10}px`;
+
+            ripple.addEventListener('animationend', () => {
+                ripple.remove();
+            });
+        });
+
         // --- 이벤트 리스너 ---
         startButton.addEventListener('click', showDifficultyScreen);
 
@@ -663,7 +754,8 @@
             playClickSound();
             currentScenarioIndex++;
             feedbackModal.classList.add('hidden');
-            loadScenario();
+            // Tone.js 시간 충돌 오류를 방지하기 위해 다음 시나리오 로드를 약간 지연시킵니다.
+            setTimeout(loadScenario, 50);
         });
 
         showLeaderboardButton.addEventListener('click', () => {
@@ -684,7 +776,6 @@
         fullscreenButton.addEventListener('click', toggleFullscreen);
         document.addEventListener('fullscreenchange', updateFullscreenIcons);
 
-        // 관리자 모드 진입 리스너
         document.addEventListener('keydown', (e) => {
             keySequence.push(e.key.toLowerCase());
             keySequence = keySequence.slice(-adminKeySequence.length);
@@ -693,14 +784,12 @@
             }
         });
 
-        // 관리자 패널: 정답 보기
         showAnswerButton.addEventListener('click', () => {
             if (correctChoiceButton) {
                 correctChoiceButton.classList.add('admin-correct-answer');
             }
         });
 
-        // 관리자 패널: 랭킹 추가
         addRankForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = document.getElementById('admin-name').value;
